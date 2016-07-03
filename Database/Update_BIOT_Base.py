@@ -4,7 +4,7 @@
 # Author:	Geofrey Cardoza
 # Company:	Excaliber Inc. (c)
 # Baseline:	June 28th, 2016
-# Revision:	July 1st, 2016  v0.7
+# Revision:	July 3rd, 2016  v0.7
 #
 # Input device:	/dev/rfconn1 through /dev/rfconn8 for all 8 RIOT1 devices
 # Input Format: Field header(3), Data length and format, Description
