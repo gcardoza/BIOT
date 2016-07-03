@@ -37,93 +37,89 @@ except:
     print ("Error connecting to the Database", sys.exc_info()[0])
     raise
 
-else:
-    # 1. ***** Open the serial device for reading data from the remote devices ***** 
-    try:
-        print("Opening Bluetooth Serial Port")
-        serialPort = serial.Serial('/dev/rfcomm1')
-        print ("Opened the Bluetooth connection to Node 1\n")
-    except:
-        print("Could not open the serial port to receive data", sys.exc_info()[0])
-        raise
-    else:
+# 1. ***** Open the serial device for reading data from the remote devices ***** 
+try:
+    print("Opening Bluetooth Serial Port")
+    serialPort = serial.Serial('/dev/rfcomm1')
+    print ("Opened the Bluetooth connection to Node 1\n")
+except:
+    print("Could not open the serial port to receive data", sys.exc_info()[0])
+    raise
         
-        # 2. ***** Main Program Loop - Continuously read the serial device for Node data *****
-        while True:
-            try:    # 3. ***** Read next record from the serial port
-                print("Reading Node Data from Serial Port")
-                record = serialPort.readline()
-            except: # 3. 
-                print("Could not read data from serial port", sys.exc_info()[0])
-                time.sleep(60) ; Wait 60 seconds and try again if a device has no data
-                continue
+# 2. ***** Main Program Loop - Continuously read the serial device for Node data *****
+while True:
+    try:    # 3. ***** Read next record from the serial port
+        print("Reading Node Data from Serial Port")
+        record = serialPort.readline()
+    except: # 3. 
+        print("Could not read data from serial port", sys.exc_info()[0])
+        time.sleep(60) # Wait 60 seconds and try again if a device has no data
+        continue
 
-            else:   #3.
-                Node_Data = record.decode("utf-8")	# Convert the data from binary to a string
-                print ("Input record received from Node")
-                print (Node_Data, end="")
+    Node_Data = record.decode("utf-8")	# Convert the data from binary to a string
+    print ("Input record received from Node")
+    print (Node_Data, end="")
 
-                # 4. Ensure this is a data record header= RIOT1 and not a debug statement
-                R1 = Node_Data[0:5]
-                if (R1 == "RIOT1"):
+    # 4. Ensure this is a data record header= RIOT1 and not a debug statement
+    R1 = Node_Data[0:5]
+    if (R1 == "RIOT1"):
+        # Parse each data field from the record
+        print ("Parsing Node Data")
+        SW = Node_Data[6:11]
+        ID = Node_Data[16:18]
+        DS = Node_Data[23:33]
+        TS = Node_Data[34:42]
+        DT = Node_Data[47:52]
+        DH = Node_Data[57:62]
+        BT = Node_Data[67:72]
+        BP = Node_Data[77:82]
+        M1 = Node_Data[87:92]
+        M2 = Node_Data[97:102]
+        M3 = Node_Data[107:112]
+        SE = Node_Data[117:123]
 
-                    # Parse each data field from the record
-                    print ("Parsing Node Data")
-                    SW = Node_Data[6:11]
-                    ID = Node_Data[16:18]
-                    DS = Node_Data[23:33]
-                    TS = Node_Data[34:42]
-                    DT = Node_Data[47:52]
-                    DH = Node_Data[57:62]
-                    BT = Node_Data[67:72]
-                    BP = Node_Data[77:82]
-                    M1 = Node_Data[87:92]
-                    M2 = Node_Data[97:102]
-                    M3 = Node_Data[107:112]
-                    SE = Node_Data[117:123]
+        # 5. ***** Insert Parsed Node data into the Database *****
+             #  For now I'm using the Pi date - when the Arduino has a RTC switch the update fields
+        try:
+            print ("Inserting Data into Database")
+            conn.execute('''INSERT INTO Sensor_Data (Node_ID, Date_Stamp, Time_Stamp,
+            DHT22_Temperature, DHT22_Humidity, BMP180_Temperature, BMP180_Pressure,
+            Moisture_1, Moisture_2, Moisture_3) \
+            VALUES (?,Date('now'),Time('now'),?,?,?,?,?,?,?)''', (ID, DT, DH, BT, BP, M1, M2, M3));
+        except: # 5.
+            # Insert failed - so Rollback the Insert and close the serial port
+            cursor.rollback()
+            serialPort.close()
+            print("Error Inserting data into the Database", sys.exc_info()[0])
+            raise
 
-                    # 5. ***** Insert Parsed Node data into the Database *****
-                            #  For now I'm using the Pi date - when the Arduino has a RTC switch the update fields
-                    try:
-                        print ("Inserting Data into Database")
-                        conn.execute('''INSERT INTO Sensor_Data (Node_ID, Date_Stamp, Time_Stamp,
-                            DHT22_Temperature, DHT22_Humidity, BMP180_Temperature, BMP180_Pressure,
-                            Moisture_1, Moisture_2, Moisture_3) \
-                            VALUES (?,Date('now'),Time('now'),?,?,?,?,?,?,?)''', (ID, DT, DH, BT, BP, M1, M2, M3));
-                    except: # 5.
-                        # Insert failed - so Rollback the Insert and close the serial port
-                        cursor.rollback()
-                        serialPort.close()
-                        print("Error Inserting data into the Database", sys.exc_info()[0])
-                        raise
-                    else:   # 5.
-                        #  Write the data and committ it to the database
-                        conn.commit()
+        #  Write the data and committ it to the database
+        conn.commit()
                         
-                        # 6. Read back the last written record and print contents
-                        try:
-                            cursor = conn.execute('''SELECT Node_ID, Date_Stamp, Time_Stamp, DHT22_Temperature,
-                                DHT22_Humidity, BMP180_Temperature, BMP180_Pressure, Moisture_1, Moisture_2,
-                                Moisture_3 from Sensor_Data WHERE ROWID = (SELECT MAX(ROWID) FROM Sensor_Data)''');
-                        except: # 6.
-                            print("Error Reading the Database", sys.exc_info()[0])
-                            raise
-                        else:   # 6.
-                            for row in cursor:
-                                print ("Reading Record back from Database")
-                                print ("				  Node Data	Database Output")
-                                print ("				  ===========	===============")
-                                print ("	Device_Type 		= ", R1, "	","-----")
-                                print ("	Node_ID 		= ", ID, "		",row[0])
-                                print ("	Date_Stamp 		= ", DS, "	",row[1])
-                                print ("	Time_Stamp 		= ", TS, "	",row[2])			
-                                print ("	DHT22_Temperature	= ", DT, "	",row[3])
-                                print ("	DHT22_Humidity 		= ", DH, "	",row[4])
-                                print ("	BMP180_Temperature 	= ", BT, "	",row[5])
-                                print ("	BMP180_Pressure 	= ", BP, "	",row[6])
-                                print ("	Moisture_1 		= ", M1, "	",row[7])
-                                print ("	Moisture_2 		= ", M2, "	",row[8])
-                                print ("	Moisture_3 		= ", M3, "	",row[9])
-                                print ("	Sequence 		= ", SE, "	","------")			
-                                print ("\n\n")
+        # 6. Read back the last written record and print contents
+        try:
+            cursor = conn.execute('''SELECT Node_ID, Date_Stamp, Time_Stamp, DHT22_Temperature,
+            DHT22_Humidity, BMP180_Temperature, BMP180_Pressure, Moisture_1, Moisture_2,
+            Moisture_3 from Sensor_Data WHERE ROWID = (SELECT MAX(ROWID) FROM Sensor_Data)''');
+        except: # 6.
+            print("Error Reading the Database", sys.exc_info()[0])
+            raise
+
+        for row in cursor:
+            print ("Reading Record back from Database")
+            print ("				  Node Data	Database Output")
+            print ("				  ===========	===============")
+            print ("	Device_Type 		= ", R1, "	","-----")
+            print ("	Node_ID 		= ", ID, "		",row[0])
+            print ("	Date_Stamp 		= ", DS, "	",row[1])
+            print ("	Time_Stamp 		= ", TS, "	",row[2])			
+            print ("	DHT22_Temperature	= ", DT, "	",row[3])
+            print ("	DHT22_Humidity 		= ", DH, "	",row[4])
+            print ("	BMP180_Temperature 	= ", BT, "	",row[5])
+            print ("	BMP180_Pressure 	= ", BP, "	",row[6])
+            print ("	Moisture_1 		= ", M1, "	",row[7])
+            print ("	Moisture_2 		= ", M2, "	",row[8])
+            print ("	Moisture_3 		= ", M3, "	",row[9])
+            print ("	Sequence 		= ", SE, "	","------")			
+            print ("\n\n")
 
