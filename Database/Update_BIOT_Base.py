@@ -4,7 +4,7 @@
 # Author:	Geofrey Cardoza
 # Company:	Excaliber Inc. (c)
 # Baseline:	June 28th, 2016
-# Revision:	July 3rd, 2016  v0.7
+# Revision:	July 4th, 2016  v0.8
 #
 # Input device:	/dev/rfconn1 through /dev/rfconn8 for all 8 RIOT1 devices
 # Input Format: Field header(3), Data length and format, Description
@@ -25,6 +25,7 @@ import serial
 import sys
 import sqlite3
 import time
+import datetime
 
 debug = 1
 activeNodeNumber = []
@@ -33,9 +34,8 @@ serialPort = []
 
 # ***** Open and connect to the BIOT SQL Database *****
 try:
-    print("Opening connection to BIOT_Base Database")
     conn = sqlite3.connect('BIOT_Base.db')
-    print ("Opened BIOT_Base database")
+    print ("Opened connection to BIOT_Base database")
 except:
     print ("Error connecting to the Database", sys.exc_info()[0])
     raise
@@ -48,8 +48,6 @@ try:
     for row in cursor:
         activeNodeNumber.append(row[0])
         activeNodePort.append(row[1])
-        if (debug == 1):
-            print("Node:", activeNodeNumber[maxNodes],"is connected to Serial Port:", activeNodePort[maxNodes])
         maxNodes += 1
     print("Total number of Active Nodes = ", maxNodes)
     
@@ -67,48 +65,63 @@ except:
 # ***** Main Program Loop - Process 1 data record from each node and move to next node *****
 currentNode = 0   #start loop on the first node
 while True:
-    try:    # Read next record from the serial port *?*
+    try:    # Read next record from the current Node
         print("Reading Data from Node:", activeNodeNumber[currentNode])
         record = serialPort[currentNode].readline()
-    except:  
+
+    except:  # *?* Handle each error condition appropriately
         print("Could not read data from serial port", sys.exc_info()[0])
-        time.sleep(60) # Wait 60 seconds and try again if a device has no data
+        time.sleep(30) # Wait 60 seconds and try again if a device has no data
         continue
 
-    Node_Data = record.decode("utf-8")	# Convert the data from binary to a string
-    print ("Input record received from Node")
-    print (Node_Data, end="")
+    nodeData = record.decode("utf-8")	# Convert the data from binary to a string
+    print ("Input record received from Node ->", nodeData)
 
     # Ensure this is a valid data record (header= RIOT1) and not a debug statement
-    R1 = Node_Data[0:5]
+    R1 = nodeData[0:5]
     if (R1 == "RIOT1"):
         # Parse each data field from the record
         print ("Parsing Node Data")
-        SW = Node_Data[6:11]
-        ID = Node_Data[16:18]
-        DS = Node_Data[23:33]
-        TS = Node_Data[34:42]
-        DT = Node_Data[47:52]
-        DH = Node_Data[57:62]
-        BT = Node_Data[67:72]
-        BP = Node_Data[77:82]
-        M1 = Node_Data[87:92]
-        M2 = Node_Data[97:102]
-        M3 = Node_Data[107:112]
-        SE = Node_Data[117:123]
+        SW = nodeData[6:11]
+        ID = nodeData[16:18]
+        DS = nodeData[23:33]
+        TS = nodeData[34:42]
+        DT = nodeData[47:52]
+        DH = nodeData[57:62]
+        BT = nodeData[67:72]
+        BP = nodeData[77:82]
+        M1 = nodeData[87:92]
+        M2 = nodeData[97:102]
+        M3 = nodeData[107:112]
+        SE = nodeData[117:123]
 
-        # ***** Insert Parsed Node data into the Database *****
-             #  For now I'm using the Pi date - when the Arduino has a RTC switch the update fields
+        # *?* Override date and time with current date and time until RIOT has a RTC
+        # TS = time.localtime(time.time)
+        # DT = now.datetime.date.today()
+               
+        # Insert Parsed Node data into the Database
+             # *?* For now I'm using the Pi date - when the Arduino has a RTC switch the update fields
         try:
             print ("Inserting Data into Database")
             conn.execute('''INSERT INTO Sensor_Data (Node_ID, Date_Stamp, Time_Stamp,
             DHT22_Temperature, DHT22_Humidity, BMP180_Temperature, BMP180_Pressure,
             Moisture_1, Moisture_2, Moisture_3) \
             VALUES (?,Date('now'),Time('now'),?,?,?,?,?,?,?)''', (ID, DT, DH, BT, BP, M1, M2, M3));
+
         except:
             # Insert failed - so Rollback the Insert and close the serial port
+            print ("Rolling back db insert")
             cursor.rollback()
-            serialPort.close()
+
+            print ("Closing db connection")
+            conn.close()    # close database connection
+
+            Print("Closing all serial ports")
+            n = 0
+            while (n < maxNodes):
+                serialPort[n].close()
+                n +=1
+                
             print("Error Inserting data into the Database", sys.exc_info()[0])
             raise
 
