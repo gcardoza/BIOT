@@ -27,6 +27,8 @@ import sqlite3
 import time
 
 debug = 1
+activeNodeNumber = []
+activeNodePort = []
 
 # 0. ***** Open and connect to the BIOT SQL Database *****
 try:
@@ -39,6 +41,18 @@ except:
 
 # 1. ***** Open the serial device for reading data from the remote devices ***** 
 try:
+    #Identify Active Nodes from Node Table
+    maxNodes = 0
+    cursor = conn.execute("SELECT Node_ID, Serial_Port from Node WHERE Node_Status = ('Active')");
+    for row in cursor:
+        print("Node: ", row[0]," is connected to Serial Port: ", row[1])
+        activeNodeNumber[maxNodes] = row[0]
+        activeNodePort[maxNodes] = row[1]
+        maxNodes += 1
+#    n = 0
+#    while n < maxNodes:
+#        print("Node: ", activeNodeNumber[n]," is connected to Serial Port: ", activeNodePort[n])
+    
     print("Opening Bluetooth Serial Port")
     serialPort = serial.Serial('/dev/rfcomm1')
     print ("Opened the Bluetooth connection to Node 1\n")
@@ -110,6 +124,7 @@ while True:
             print ("				  Node Data	Database Output")
             print ("				  ===========	===============")
             print ("	Device_Type 		= ", R1, "	","-----")
+            print ("	Software Version	= ", SW, "	","-----")
             print ("	Node_ID 		= ", ID, "		",row[0])
             print ("	Date_Stamp 		= ", DS, "	",row[1])
             print ("	Time_Stamp 		= ", TS, "	",row[2])			
