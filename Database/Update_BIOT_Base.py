@@ -149,12 +149,12 @@ while True:
                 raise
 
             for row in cursor:
-                print ("Reading Record back from Database")
+                if (debug == 1): print ("Reading Record back from Database")
                 print ("				  Node Data	Database Output")
                 print ("				  ===========	===============")
+                print ("	Node_ID 		= ", ID, "		",row[0])
                 print ("	Device_Type 		= ", R1, "	","-----")
                 print ("	Software Version	= ", SW, "	","-----")
-                print ("	Node_ID 		= ", ID, "		",row[0])
                 print ("	Date_Stamp 		= ", DS, "	",row[1])
                 print ("	Time_Stamp 		= ", TS, "	",row[2])			
                 print ("	DHT22_Temperature	= ", DT, "	",row[3])
@@ -164,8 +164,7 @@ while True:
                 print ("	Moisture_1 		= ", M1, "	",row[7])
                 print ("	Moisture_2 		= ", M2, "	",row[8])
                 print ("	Moisture_3 		= ", M3, "	",row[9])
-                print ("	Sequence 		= ", SE, "	","------")			
-                print ("\n\n")
+                print ("	Sequence 		= ", SE, "	","------\n")			
 
     # Increment to next active node if at max then start over
     currentNode += 1
