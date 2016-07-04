@@ -31,7 +31,7 @@ activeNodeNumber = []
 activeNodePort = []
 serialPort = []
 
-# 0. ***** Open and connect to the BIOT SQL Database *****
+# ***** Open and connect to the BIOT SQL Database *****
 try:
     print("Opening connection to BIOT_Base Database")
     conn = sqlite3.connect('BIOT_Base.db')
@@ -40,7 +40,7 @@ except:
     print ("Error connecting to the Database", sys.exc_info()[0])
     raise
 
-# 1. ***** Open the serial device for reading data from the remote devices ***** 
+# **** Open the serial device for reading data from the remote devices ***** 
 try:
     #Retriev all Active Nodes from Node Table and their serial ports
     maxNodes = 0
@@ -49,7 +49,7 @@ try:
         activeNodeNumber.append(row[0])
         activeNodePort.append(row[1])
         if (debug == 1):
-            print("Node: ", activeNodeNumber[maxNodes]," is connected to Serial Port: ", activeNodePort[maxNodes])
+            print("Node:", activeNodeNumber[maxNodes],"is connected to Serial Port:", activeNodePort[maxNodes])
         maxNodes += 1
     print("Total number of Active Nodes = ", maxNodes)
     
@@ -57,20 +57,20 @@ try:
     n = 0
     while n < maxNodes:
         print("Opening Serial Port ", activeNodePort[n], "for Node:", activeNodeNumber[n])
-        serialPort.append(serial.Serial(activeNodePort[n])
+        serialPort.append(serial.Serial(activeNodePort[n], timeout=5))
         n += 1
 
 except:
     print("Could not open the serial port to receive data", sys.exc_info()[0])
     raise
         
-# 2. ***** Main Program Loop - Continuously read the serial device for Node data *****
-currentNode = 0   #start loop on the first node index
+# ***** Main Program Loop - Process 1 data record from each node and move to next node *****
+currentNode = 0   #start loop on the first node
 while True:
-    try:    # 3. ***** Read next record from the serial port *?*
+    try:    # Read next record from the serial port *?*
         print("Reading Data from Node:", activeNodeNumber[currentNode])
         record = serialPort[currentNode].readline()
-    except: # 3. 
+    except:  
         print("Could not read data from serial port", sys.exc_info()[0])
         time.sleep(60) # Wait 60 seconds and try again if a device has no data
         continue
@@ -79,7 +79,7 @@ while True:
     print ("Input record received from Node")
     print (Node_Data, end="")
 
-    # 4. Ensure this is a data record header= RIOT1 and not a debug statement
+    # Ensure this is a valid data record (header= RIOT1) and not a debug statement
     R1 = Node_Data[0:5]
     if (R1 == "RIOT1"):
         # Parse each data field from the record
@@ -97,7 +97,7 @@ while True:
         M3 = Node_Data[107:112]
         SE = Node_Data[117:123]
 
-        # 5. ***** Insert Parsed Node data into the Database *****
+        # ***** Insert Parsed Node data into the Database *****
              #  For now I'm using the Pi date - when the Arduino has a RTC switch the update fields
         try:
             print ("Inserting Data into Database")
@@ -105,7 +105,7 @@ while True:
             DHT22_Temperature, DHT22_Humidity, BMP180_Temperature, BMP180_Pressure,
             Moisture_1, Moisture_2, Moisture_3) \
             VALUES (?,Date('now'),Time('now'),?,?,?,?,?,?,?)''', (ID, DT, DH, BT, BP, M1, M2, M3));
-        except: # 5.
+        except:
             # Insert failed - so Rollback the Insert and close the serial port
             cursor.rollback()
             serialPort.close()
@@ -115,12 +115,12 @@ while True:
         #  Write the data and committ it to the database
         conn.commit()
                         
-        # 6. Read back the last written record and print contents
+        # Read back the last written record and print contents
         try:
             cursor = conn.execute('''SELECT Node_ID, Date_Stamp, Time_Stamp, DHT22_Temperature,
             DHT22_Humidity, BMP180_Temperature, BMP180_Pressure, Moisture_1, Moisture_2,
             Moisture_3 from Sensor_Data WHERE ROWID = (SELECT MAX(ROWID) FROM Sensor_Data)''');
-        except: # 6.
+        except:
             print("Error Reading the Database", sys.exc_info()[0])
             raise
 
@@ -143,3 +143,7 @@ while True:
             print ("	Sequence 		= ", SE, "	","------")			
             print ("\n\n")
 
+    # Increment to next active node if at max then start over
+    currentNode += 1
+    if (currentNode == maxNodes):
+        currentNode = 0
