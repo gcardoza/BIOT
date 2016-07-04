@@ -29,6 +29,7 @@ import time
 debug = 1
 activeNodeNumber = []
 activeNodePort = []
+serialPort = []
 
 # 0. ***** Open and connect to the BIOT SQL Database *****
 try:
@@ -41,30 +42,34 @@ except:
 
 # 1. ***** Open the serial device for reading data from the remote devices ***** 
 try:
-    #Identify Active Nodes from Node Table
+    #Retriev all Active Nodes from Node Table and their serial ports
     maxNodes = 0
     cursor = conn.execute("SELECT Node_ID, Serial_Port from Node WHERE Node_Status = ('Active')");
     for row in cursor:
-        print("Node: ", row[0]," is connected to Serial Port: ", row[1])
-        activeNodeNumber[maxNodes] = row[0]
-        activeNodePort[maxNodes] = row[1]
+        activeNodeNumber.append(row[0])
+        activeNodePort.append(row[1])
+        if (debug == 1):
+            print("Node: ", activeNodeNumber[maxNodes]," is connected to Serial Port: ", activeNodePort[maxNodes])
         maxNodes += 1
-#    n = 0
-#    while n < maxNodes:
-#        print("Node: ", activeNodeNumber[n]," is connected to Serial Port: ", activeNodePort[n])
+    print("Total number of Active Nodes = ", maxNodes)
     
-    print("Opening Bluetooth Serial Port")
-    serialPort = serial.Serial('/dev/rfcomm1')
-    print ("Opened the Bluetooth connection to Node 1\n")
+    # Open the Serial Ports for each Active Node
+    n = 0
+    while n < maxNodes:
+        print("Opening Serial Port ", activeNodePort[n], "for Node:", activeNodeNumber[n])
+        serialPort.append(serial.Serial(activeNodePort[n])
+        n += 1
+
 except:
     print("Could not open the serial port to receive data", sys.exc_info()[0])
     raise
         
 # 2. ***** Main Program Loop - Continuously read the serial device for Node data *****
+currentNode = 0   #start loop on the first node index
 while True:
-    try:    # 3. ***** Read next record from the serial port
-        print("Reading Node Data from Serial Port")
-        record = serialPort.readline()
+    try:    # 3. ***** Read next record from the serial port *?*
+        print("Reading Data from Node:", activeNodeNumber[currentNode])
+        record = serialPort[currentNode].readline()
     except: # 3. 
         print("Could not read data from serial port", sys.exc_info()[0])
         time.sleep(60) # Wait 60 seconds and try again if a device has no data
