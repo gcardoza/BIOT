@@ -117,7 +117,7 @@ while True:
                 conn.execute('''INSERT INTO Sensor_Data (Node_ID, Date_Stamp, Time_Stamp,
                 DHT22_Temperature, DHT22_Humidity, BMP180_Temperature, BMP180_Pressure,
                 Moisture_1, Moisture_2, Moisture_3) \
-                VALUES (?,Date('now'),Time('now'),?,?,?,?,?,?,?)''', (ID, DT, DH, BT, BP, M1, M2, M3));
+                VALUES (?,?,?,?,?,?,?,?,?,?)''', (ID, DS, TS, DT, DH, BT, BP, M1, M2, M3));
 
             except:
                 # Insert failed - so Rollback the Insert and close the serial port
