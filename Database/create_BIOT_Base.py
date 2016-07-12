@@ -25,7 +25,8 @@ conn.execute('''CREATE TABLE Sensor_Data
 	BMP180_Pressure	REAL,
 	Moisture_1	REAL,
 	Moisture_2	REAL,
-	Moisture_3	REAL);''')
+	Moisture_3	REAL,
+	Sequence        INT);''')
 print "Data Table created successfully";
 
 conn.execute('''CREATE TABLE Alert

@@ -4,7 +4,7 @@
 # Author:	Geofrey Cardoza
 # Company:	Excaliber Inc. (c)
 # Baseline:	June 28th, 2016
-# Revision:	July 4th, 2016  v0.8
+# Revision:	July 11th, 2016  v0.9
 #
 # Input device:	/dev/rfconn1 through /dev/rfconn8 for all 8 RIOT1 devices
 # Input Format: Field header(3), Data length and format, Description
@@ -20,6 +20,7 @@
 #	M1:	5.1			Moisture Level 1 (%)
 #	M2:	5.1			Moisture Level 2 (%)
 #	M3:	5.1			Moisture Level 3 (%)
+#       SE:     6                       Transmission sequence number
  
 import serial
 import sys
@@ -116,8 +117,8 @@ while True:
                 if (debug == 1) : print ("Inserting Data into Database")
                 conn.execute('''INSERT INTO Sensor_Data (Node_ID, Date_Stamp, Time_Stamp,
                 DHT22_Temperature, DHT22_Humidity, BMP180_Temperature, BMP180_Pressure,
-                Moisture_1, Moisture_2, Moisture_3) \
-                VALUES (?,?,?,?,?,?,?,?,?,?)''', (ID, DS, TS, DT, DH, BT, BP, M1, M2, M3));
+                Moisture_1, Moisture_2, Moisture_3, Sequence) \
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)''', (ID, DS, TS, DT, DH, BT, BP, M1, M2, M3, SE));
 
             except:
                 # Insert failed - so Rollback the Insert and close the serial port
@@ -143,7 +144,7 @@ while True:
             try:
                 cursor = conn.execute('''SELECT Node_ID, Date_Stamp, Time_Stamp, DHT22_Temperature,
                 DHT22_Humidity, BMP180_Temperature, BMP180_Pressure, Moisture_1, Moisture_2,
-                Moisture_3 from Sensor_Data WHERE ROWID = (SELECT MAX(ROWID) FROM Sensor_Data)''');
+                Moisture_3, Sequence from Sensor_Data WHERE ROWID = (SELECT MAX(ROWID) FROM Sensor_Data)''');
             except:
                 print("Error Reading the Database", sys.exc_info()[0])
                 raise
@@ -164,7 +165,7 @@ while True:
                 print ("	Moisture_1 		= ", M1, "	",row[7])
                 print ("	Moisture_2 		= ", M2, "	",row[8])
                 print ("	Moisture_3 		= ", M3, "	",row[9])
-                print ("	Sequence 		= ", SE, "	","------\n")			
+                print ("	Sequence 		= ", SE, "	",row[10],"\n")			
 
     # Increment to next active node if at max then start over
     currentNode += 1
