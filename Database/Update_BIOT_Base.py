@@ -4,7 +4,7 @@
 # Author:	Geofrey Cardoza
 # Company:	Excaliber Inc. (c)
 # Baseline:	June 28th, 2016
-# Revision:	July 11th, 2016  v0.9
+# Revision:	August 15th, 2016  v1.0
 #
 # Input device:	/dev/rfconn1 through /dev/rfconn8 for all 8 RIOT1 devices
 # Input Format: Field header(3), Data length and format, Description
@@ -17,9 +17,9 @@
 #	DH:	5.1			DHT22 Humidity (%)
 #	BT:	5.1			BMP180 Temperature (C)
 #	BP:	5.1			BMP180 Pressure (kPa)
-#	M1:	5.1			Moisture Level 1 (%)
-#	M2:	5.1			Moisture Level 2 (%)
-#	M3:	5.1			Moisture Level 3 (%)
+#	M1:	3			Moisture Level 1 (%)
+#	M2:	3			Moisture Level 2 (%)
+#	M3:	3			Moisture Level 3 (%)
 #       SE:     6                       Transmission sequence number
  
 import serial
@@ -85,8 +85,9 @@ while True:
             record = serialPort[currentNode].readline()
 
     except:  # *?* Handle each error condition appropriately
-        print("Could not read data from serial port", sys.exc_info()[0])
-        raise
+        if (debug ==1) : print("Could not read data from serial port", sys.exc_info()[0])
+        availableNodeData[currentNode] = 0
+        continue
 
     # 1. Process current record if there is data available
     if(availableNodeData[currentNode] != 0):
@@ -106,13 +107,12 @@ while True:
             DH = nodeData[57:62]
             BT = nodeData[67:72]
             BP = nodeData[77:82]
-            M1 = nodeData[87:92]
-            M2 = nodeData[97:102]
-            M3 = nodeData[107:112]
-            SE = nodeData[117:123]
+            M1 = nodeData[87:90]
+            M2 = nodeData[95:98]
+            M3 = nodeData[103:106]
+            SE = nodeData[111:117]
                
             # Insert Parsed Node data into the Database
-                 # *?* For now I'm using the Pi date - when the Arduino has a RTC switch the update fields
             try:
                 if (debug == 1) : print ("Inserting Data into Database")
                 conn.execute('''INSERT INTO Sensor_Data (Node_ID, Date_Stamp, Time_Stamp,
@@ -120,6 +120,8 @@ while True:
                 Moisture_1, Moisture_2, Moisture_3, Sequence) \
                 VALUES (?,?,?,?,?,?,?,?,?,?,?)''', (ID, DS, TS, DT, DH, BT, BP, M1, M2, M3, SE));
 
+                # ?*? Update Node Table with Software Version
+                
             except:
                 # Insert failed - so Rollback the Insert and close the serial port
                 print ("Rolling back db insert")
@@ -162,9 +164,9 @@ while True:
                 print ("	DHT22_Humidity 		= ", DH, "	",row[4])
                 print ("	BMP180_Temperature 	= ", BT, "	",row[5])
                 print ("	BMP180_Pressure 	= ", BP, "	",row[6])
-                print ("	Moisture_1 		= ", M1, "	",row[7])
-                print ("	Moisture_2 		= ", M2, "	",row[8])
-                print ("	Moisture_3 		= ", M3, "	",row[9])
+                print ("	Moisture_1 		= ", M1, "	        ",row[7])
+                print ("	Moisture_2 		= ", M2, "	        ",row[8])
+                print ("	Moisture_3 		= ", M3, "	        ",row[9])
                 print ("	Sequence 		= ", SE, "	",row[10],"\n")			
 
     # Increment to next active node if at max then start over
@@ -179,6 +181,6 @@ while True:
         if (debug == 1) : print("Data Count = ", count)
 
         if(count == 0):
-            if (debug == 1) : print("No data available on any active port. Sleeping for 10 seconds")
-            time.sleep(10)
+            if (debug == 1) : print("No data available on any active port. Sleeping for 20 seconds")
+            time.sleep(20)
         currentNode = 0
