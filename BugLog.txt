@@ -1,0 +1,24 @@
+while True:
+    try:    # Check if there is data to read from the node port
+        if (debug == 1) : print("Reading Data from Node:", activeNodeNumber[currentNode])
+        availableNodeData[currentNode] = serialPort[currentNode].inWaiting()
+        if (debug == 1) : print("Bytes available on Node = ", availableNodeData[currentNode])
+
+        # Read data if there is data available
+        if(availableNodeData[currentNode] != 0):
+            record = serialPort[currentNode].readline()
+
+    except:  # *?* Handle each error condition appropriately
+        print("Could not read data from serial port", sys.exc_info()[0])
+        raise
+
+ 
+
+Could not read data from serial port <class 'OSError'>
+Traceback (most recent call last):
+  File "./Update_BIOT_Base.py", line 79, in <module>
+    availableNodeData[currentNode] = serialPort[currentNode].inWaiting()
+  File "/usr/lib/python3/dist-packages/serial/serialposix.py", line 435, in inWaiting
+    s = fcntl.ioctl(self.fd, TIOCINQ, TIOCM_zero_str)
+OSError: [Errno 5] Input/output error
+pi@raspberrypi:~/Excaliber/BIOT/Database $ 
