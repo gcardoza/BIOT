@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # How to use:
 # python server.py [db_file_path]
@@ -13,10 +13,10 @@ import sys, getopt
 app = Flask(__name__)
 
 # Database connection
-db_name = 'BIOT_Base.db'
+db_name = '../Database/BIOT_Base.db'
 if len(sys.argv) >= 2:
     db_name = sys.argv[1]
-conn = sqlite3.connect('BIOT_Base.db')
+conn = sqlite3.connect(db_name)
 
 # This creates an HTTP route on the server
 # If you navigate to a /static/<file_name> path, it serves that file
@@ -43,13 +43,12 @@ def get_nodes():
             'Node_Location': row[5],
             'Node_Status': row[6],
         })
-
-    return jsonify(resp) 
+    return jsonify(data=resp) 
 
 @app.route('/sensordata', methods=['GET'])
 def get_sensor_data():
     c = conn.cursor()
-    c.execute('SELECT * FROM Sensor_Data')
+    c.execute('SELECT * FROM Sensor_Data LIMIT 10')
     resp = []
 
     for row in c.fetchall():
@@ -67,7 +66,7 @@ def get_sensor_data():
             'Sequence': row[10],
         })
 
-    return jsonify(resp) 
+    return jsonify(data=resp) 
 
 
 # Start the server
