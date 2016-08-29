@@ -24,6 +24,10 @@ conn = sqlite3.connect(db_name)
 def static_assets(path):
     return send_from_directory('static', path)
 
+@app.route('/dist/<path>')
+def dist_assets(path):
+    return send_from_directory('dist', path)
+
 # HTTP-API Routes
 # These routes execute a query on the database and return the data
 # as JSON
@@ -67,6 +71,10 @@ def get_sensor_data():
         })
 
     return jsonify(data=resp) 
+
+@app.route('/', methods=['GET'])
+def get_home():
+    return send_from_directory('templates', 'index.html')
 
 
 # Start the server
