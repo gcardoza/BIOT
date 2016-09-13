@@ -11,8 +11,8 @@ conn.execute('''CREATE TABLE Node
 	Node_Type	TEXT,
 	MAC_Address	TEXT,
 	SW_Version	TEXT,
-	Node_Location	TEXT,
-	Node_Status	TEXT);''')
+	Node_Status	TEXT,
+	Node_Location	TEXT);''')
 print ("  -> Node Table created successfully")
 
 conn.execute('''CREATE TABLE Sensor_Data
@@ -21,10 +21,10 @@ conn.execute('''CREATE TABLE Sensor_Data
 	Temperature	REAL,
 	Humidity	REAL,
 	Pressure	REAL,
+	Sequence        INT,
 	Analog_1	INT,
 	Digital_1	INT,
-	Digital_2	INT,
-	Sequence        INT);''')
+	Digital_2	INT);''')
 print ("  -> Data Table created successfully")
 
 conn.execute('''CREATE TABLE Alert
