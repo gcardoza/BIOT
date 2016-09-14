@@ -11,47 +11,24 @@ import serial
 import sys
 import sqlite3
 import time
-import datetime
 import paho.mqtt.client as mqtt
 
-debug = 0
-
-# Check for command line arguments and if debug is on -d
-if (len(sys.argv) >= 2):
-    x = sys.argv[1]
-    if (x == "-d"):
-        debug = 1
-        print("Debug Mode is On")
-
-# ***** Open and connect to the BIOT SQL Database *****
-try:
-    conn = sqlite3.connect('biot.db')
-    curs = conn.cursor()
-    if (debug == 1): print ("Opened connection to biot.db database")
-
-except:
-    print ("Error connecting to the Database", sys.exc_info()[0])
-    raise
-
-# ***** Reset all Nodes to an Inactive Status *****
-if (debug == 1): print("Setting all Node Status' to Inactive at Startup")
-conn.execute('''UPDATE Node SET Node_Status = "Inactive"''')
-conn.commit()
-
-if (debug == 1): print("  -> Done")
+# ============================================= DEFINED FUNCTIONS =============================================
 
 # ***** Process Event on connection to MQTT server and ensure subscribtion to /RIOT2/SensorData Topic *****
-
 def on_connect(client, userdata, flags, rc):                                                                   
-    if (debug == 1): print("Connected to biot.db.  Result code = "+str(rc))
+    if (debug == 1): print("Connected to MQTT Server.  Result code = "+str(rc))
 
-    # Subscribing in on_connect() means that if we lose the connection and reconnect then subscriptions will be renewed.
+    # Reconnect Subscribtion when a connection is made to the MQTT Server
     client.subscribe("/RIOT2/SensorData")
+
 
 # ***** Callback function to process the data published to the /RIOT2/SesorData Topic *****
 def on_message(client, userdata, msg):
     node_Data = msg.payload.decode("utf-8")
-    print(msg.topic+" -> ["+node_Data, "]")
+    print ("************************ Message Received on MQTT Topic /RIOT2/SensorData ************************\n")
+    print("  ->", node_Data, "<-")        # Print out the Message Payload
+    print(" ")
 
     # Parse each data field from the record
     nodeType        = node_Data[3:8]
@@ -66,26 +43,14 @@ def on_message(client, userdata, msg):
     digital1        = node_Data[84:85]
     digital2        = node_Data[89:90]
 
-    print ("				  Node Data")
-    print ("				  ===========")
-    print ("	Node Type 		= ", nodeType)
-    print ("	MAC Address 		= ", macAddress)
-    print ("	Node ID 		= ", nodeId)
-    print ("	Software Version	= ", swVersion)
-    #    print ("	DateTime 		= ")
-    print ("	Temperature	        = ", temperature)
-    print ("	Humidity 		= ", humidity)
-    print ("	Pressure        	= ", pressure)
-    print ("	Sequence 		= ", sequence)
-    print ("	Analog 1 		= ", analog1)
-    print ("	Digital 1 		= ", digital1)
-    print ("	Digital 2 		= ", digital2)
+    # Get current time fo rthe time-stamp (will use Unix Time)
+    currentTime = int(time.time())
 
     # Insert RIOT2 data into the Sensor_Data Table
     try:
-        if (debug == 1): print ("Inserting Sensor Data into Database")
-        conn.execute('''INSERT INTO Sensor_Data (Node_ID, Temperature, Humidity, Pressure, Sequence) \
-        VALUES (?,?,?,?,?)''', (nodeId, temperature, humidity, pressure, sequence));
+        if (debug == 1): print("Inserting Sensor Data into Database")
+        conn.execute('''INSERT INTO Sensor_Data (Node_ID, Date_Time, Temperature, Humidity, Pressure, Sequence) \
+        VALUES (?,?,?,?,?,?)''', (nodeId, currentTime, temperature, humidity, pressure, sequence));
         if (debug == 1): print("  -> Done")
 
     except:
@@ -94,21 +59,21 @@ def on_message(client, userdata, msg):
     
     # Update or Insert Node Table from RIOT2 data
     try:
-        if (debug == 1): print("Checking if Node exists in Table for ID: ", nodeId)
+        if (debug == 1): print("Checking if data exists in Table for Node: ", nodeId)
         curs.execute('SELECT count(*) FROM Node WHERE Node_ID = ?', (nodeId,));
 
         data=curs.fetchone()[0]
     
         if (data == 0):
-            if (debug == 1): print("Node NOT in table.  INSERTING data into Node Table")
+            if (debug == 1): print("  -> Node NOT in table.  INSERTING data into Node Table")
             curs.execute('''INSERT INTO Node (Node_ID, Node_Type, MAC_Address, SW_Version, Node_Status) \
             VALUES (?,?,?,?,"Active")''', (nodeId, nodeType, macAddress, swVersion));
-            if (debug == 1): print("  -> Done")
+            if (debug == 1): print("    -> Done")
         else:
-            if (debug == 1): print("Node EXISTS in table. UPDATING Node Table")
+            if (debug == 1): print("  -> Node EXISTS in table. UPDATING Node Table")
             curs.execute('''UPDATE Node SET Node_Type = ?, MAC_Address = ?, SW_Version = ?, Node_Status = "Active" WHERE Node_ID = ?''',
                            (nodeType, macAddress, swVersion, nodeId));
-            if (debug == 1): print("  -> Done")
+            if (debug == 1): print("    -> Done")
         
     except:
         print("A problem was experienced updating the Node Table", sys.exc_info()[0])
@@ -119,7 +84,71 @@ def on_message(client, userdata, msg):
     conn.commit()
     if (debug == 1): print("  -> Done")
 
-    
+
+    # Read back the last written Sensor Data record and compare to what came in from the Node
+    try:
+        cursor2 = conn.execute('''SELECT Node_ID, Date_Time, Temperature, Humidity, Pressure, Sequence FROM Sensor_Data
+        WHERE ROWID = (SELECT MAX(ROWID) FROM Sensor_Data)''');
+
+    except:
+        print("A problem was experienced reading from the Sensor_Data Table", sys.exc_info()[0])
+        raise
+
+    for row in cursor2:
+        print("		    Input Data                  Database Output")
+        print("		    =========================   =======================")
+        print("SENSOR DATA")
+        print("  Node ID          = ", nodeId, "   ", row[0])
+        print("  Date & Time 	   = ", time.strftime("%Y/%m/%d - %H:%M:%S", time.localtime(currentTime)), "     ", time.strftime("%Y/%m/%d - %H:%M:%S", time.localtime(row[1])))
+        print("  Temperature	   = ", temperature, "                      ", row[2])
+        print("  Humidity 	   = ", humidity, "                      ", row[3])
+        print("  Pressure         = ", pressure, "                     ", row[4])
+        print("  Sequence 	   = ", sequence, "                        ", row[5])
+
+
+    # Read back the last written Node Data record and compare to what came in from the Node
+    try:
+        cursor2 = conn.execute('''SELECT Node_ID, Node_Type, MAC_Address, SW_Version FROM Node WHERE Node_ID =?''', (nodeId,));
+
+    except:
+        print("A problem was experienced reading from the Node Table", sys.exc_info()[0])
+        raise
+
+    for row in cursor2:
+        print("\nNODE DATA")
+        print("  Node ID 	   = ", nodeId, "   ", row[0])
+        print("  Node Type 	   = ", nodeType,"                     ", row[1])
+        print("  MAC Address 	   = ", macAddress, "         ", row[2])
+        print("  Software Version = ", swVersion,  "                    ", row[3])
+        print("\n\n")
+
+# ====================== Main Program ============================
+debug = 0
+
+# Check for command line arguments and if debug is on -d
+if (len(sys.argv) >= 2):
+    x = sys.argv[1]
+    if (x == "-d"):
+        debug = 1
+        print("Debug Mode is On")
+
+# ***** Open and connect to the BIOT SQL Database *****
+try:
+    conn = sqlite3.connect('biot.db')
+    curs = conn.cursor()
+    if (debug == 1): print("Opened connection to biot.db database")
+
+except:
+    print("Error connecting to the Database", sys.exc_info()[0])
+    raise
+
+# ***** Reset all Nodes to an Inactive Status *****
+if (debug == 1): print("Setting all Node Status' to Inactive at Startup")
+conn.execute('''UPDATE Node SET Node_Status = "Inactive"''')
+conn.commit()
+
+if (debug == 1): print("  -> Done")
+
 # ***** Connect to MQTT server *****
 client = mqtt.Client()                  # Instantiate the MQTT client
 client.on_connect = on_connect          # Set the function executed once a connection is made to the MQTT server
@@ -134,10 +163,10 @@ except:
     print("\n***** Closing the Program *****", sys.exc_info()[0])
 
 # ***** Close the program gracefully
-print ("  -> Closing the database connection")
+print("  -> Closing the database connection")
 conn.close()
 
-print ("  -> Closing the MQTT connection")
+print("  -> Closing the MQTT connection")
 client.disconnect()
 
 
