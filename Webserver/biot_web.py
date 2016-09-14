@@ -1,7 +1,11 @@
 #!/usr/bin/python3
+
+# Project:	BIOT Home IOT Base Station - Web Access
+# Author:	Geofrey Cardoza
+# Company:	Excaliber Inc. (c)
+# Baseline:	June 28th, 2016
+# Revision:	September 13th, 2016  v1.1
 #
-# How to use:
-# python server.py [db_file_path]
 
 from flask import Flask, send_from_directory, request, jsonify
 import sqlite3
@@ -12,12 +16,11 @@ import sys, getopt
 # Place any static files you want in that directory
 app = Flask(__name__)
 
-# Database connection
-db_name = '../Database/BIOT_Base.db'
-if len(sys.argv) >= 2:
-    db_name = sys.argv[1]
+# ***** Connect to the biot Database *****
+db_name = '../Database/biot.db'
 conn = sqlite3.connect(db_name)
 
+# ***** Define the Static Content Path
 # This creates an HTTP route on the server
 # If you navigate to a /static/<file_name> path, it serves that file
 @app.route('/static/<path>')
@@ -37,11 +40,10 @@ def get_nodes():
         resp.append({
             'Node_Id': row[0],
             'Node_type': row[1],
-            'SW_Version': row[2],
-            'MAC_ADDRESS': row[3],
-            'Serial_Port': row[4],
+            'MAC_ADDRESS': row[2],
+            'SW_Version': row[3],
+            'Node_Status': row[4],
             'Node_Location': row[5],
-            'Node_Status': row[6],
         })
     return jsonify(data=resp) 
 
@@ -50,20 +52,14 @@ def get_sensor_data():
     c = conn.cursor()
     c.execute('SELECT * FROM Sensor_Data LIMIT 10')
     resp = []
-
     for row in c.fetchall():
         resp.append({
             'Node_Id': row[0],
-            'Data_Stamp': row[1],
-            'Time_Stamp': row[2],
-            'DHT22_Temperature': row[3],
-            'DHT22_Humidity': row[4],
-            'BMP180_Temperature': row[5],
-            'BMP180_Pressure': row[6],
-            'Moisture_1': row[7],
-            'Moisture_2': row[8],
-            'Moisture_3': row[9],
-            'Sequence': row[10],
+            'Data_Time': row[1],
+            'Temperature': row[2],
+            'Humidity': row[3],
+            'Pressure': row[4],
+            'Sequence': row[5],
         })
 
     return jsonify(data=resp) 

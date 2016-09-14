@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# Project:	BIOT Base Monitoring Station - Reads data from the RIOT2+ devices
+# Project:	BIOT Home IOT Base Station - Updates SQL database with RIOT2 published SensorData
 # Author:	Geofrey Cardoza
 # Company:	Excaliber Inc. (c)
 # Baseline:	June 28th, 2016
@@ -122,7 +122,7 @@ def on_message(client, userdata, msg):
         print("  Software Version = ", swVersion,  "                    ", row[3])
         print("\n\n")
 
-# ====================== Main Program ============================
+# ============================================= MAIN PROGRAM ==================================================
 debug = 0
 
 # Check for command line arguments and if debug is on -d
