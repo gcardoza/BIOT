@@ -13,8 +13,6 @@ import sqlite3
 import time
 import paho.mqtt.client as mqtt
 
-# ============================================= DEFINED FUNCTIONS =============================================
-
 
 # =============================================  Main Program ================================================= 
 debug = 0
@@ -55,12 +53,13 @@ except:
 
 # ***** Get a list of the Active Nodes and their Locations  *****
 try:
+    if (debug == 1): print("\nScanning through Node Table Looking for Active Nodes")
     nodeCount = 0
     cursor = conn.execute("SELECT Node_ID, Node_Location FROM Node WHERE Node_Status = ('Active')");
     for row in cursor:
         activeNodeId.append(row[0])
         activeNodeLocation.append(row[1])
-        if(debug == 1): print("Node ID: ",activeNodeId[nodeCount],"   Location:", activeNodeLocation[nodeCount])
+        if(debug == 1): print("Node ID: ",activeNodeId[nodeCount],"   Location:", activeNodeLocation[nodeCount], "nodeCount: ", nodeCount)
         nodeCount += 1
     if(debug == 1): print("Total Active Nodes: ", nodeCount)
 
@@ -71,7 +70,7 @@ except:
 # ***** Get Most Recent Sensor Readings and the time they came in *****
 n = 0
 while n < nodeCount:
-    if (debug == 1): print("Looking for most recent sensor data for Node: ", activeNodeId[n])
+    if (debug == 1): print("Looking for most recent sensor data for Node: ", activeNodeId[n], "nodeCount: ", n)
 
     cursor = conn.execute('''SELECT Date_Time, Temperature, Humidity, Pressure FROM Sensor_Data
     WHERE Node_ID = ? AND Date_Time = (SELECT MAX(DATE_TIME) FROM Sensor_Data)''', (activeNodeId[n],));
@@ -83,12 +82,13 @@ while n < nodeCount:
         currentPressure.append(row[3])
     n += 1
 
-# ***** Get the last 24 hour High readings *****
+# ***** Get the last 24 hour High/Low readings *****
 nowTime = int(time.time())
 twentyFoursAgo = nowTime-(24*60*60)
 
 n = 0
 while n < nodeCount:
+    if (debug == 1): print("Looking for most High/Low Range for Node: ", activeNodeId[n], "nodeCount: ", n)
     # Get the High Temperature
     cursor = conn.execute('''SELECT MAX(Temperature) FROM Sensor_Data WHERE Node_ID = ? AND Date_Time > ?''',
                           (activeNodeId[n], twentyFoursAgo));
@@ -121,25 +121,15 @@ while n < nodeCount:
     n += 1    
 
 # ***** Print the Dashboard *****
-
-if (debug == 1):
-    n = 0
-    while n < nodeCount:
-        print("Report #1")
-        print("Location: ", activeNodeLocation[n], "\t\t Node ID:",activeNodeId[n])
-        print("  Time:", time.strftime("%Y/%m/%d - %H:%M:%S", time.localtime(currentDateTime[n])))
-        print("  Temperature:", currentTemperature[n], "\t\t24hr Range:", lastDayHighTemperature[n], " - ", lastDayLowTemperature[n])
-        print("  Humidity:", currentHumidity[n], "\t\t24hr Range:", lastDayHighHumidity[n], " - ", lastDayLowHumidity[n])
-        print("  Pressure:", currentPressure[n], "\t\t24hr Range:", lastDayHighPressure[n], " - ", lastDayLowPressure[n])
-        print(" ")
-        n += 1
+print("\nnodeCount: ", nodeCount)
 
 print("\nReport #2")
-print("Location\tTemperature\tLast 24 hr Range\tHumidity\tLast 24 hr Range\tPressure\tLast 24 hr Range")
+print("Location\tTemperature   24 hr Range\tHumidity    24 hr Range\t    Pressure\t24 hr Range")
+print("--------\t-----------   -----------\t--------    -----------\t   ---------\t-----------")
 n = 0
 while n < nodeCount:
-    print(activeNodeLocation[n], "\t", currentTemperature[n], "\t\t", lastDayHighTemperature[n], " - ", lastDayLowTemperature[n],
-          currentHumidity[n], "\t", lastDayHighHumidity[n], " - ", lastDayLowHumidity[n],
-          currentPressure[n], "\t", lastDayHighPressure[n], " - ", lastDayLowPressure[n])
+    print(activeNodeLocation[n], "\t", currentTemperature[n], "\t      ", lastDayHighTemperature[n], "/", lastDayLowTemperature[n],
+          "\t", currentHumidity[n], "\t    ", lastDayHighHumidity[n], "/", lastDayLowHumidity[n],
+          "  ",currentPressure[n], "\t", lastDayHighPressure[n], "/", lastDayLowPressure[n])
     n += 1
 
