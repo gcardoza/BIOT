@@ -4,7 +4,7 @@
 # Author:	Geofrey Cardoza
 # Company:	Excaliber Inc. (c)
 # Baseline:	June 28th, 2016
-# Revision:	September 13th, 2016  v1.1
+# Revision:	September 20th, 2016  v1.1
 #
 
 import serial
@@ -12,6 +12,7 @@ import sys
 import sqlite3
 import time
 import paho.mqtt.client as mqtt
+import paho.mqtt.publish as publish
 
 # ============================================= DEFINED FUNCTIONS =============================================
 
@@ -20,7 +21,7 @@ def on_connect(client, userdata, flags, rc):
     if (debug == 1): print("Connected to MQTT Server.  Result code = "+str(rc))
 
     # Reconnect Subscribtion when a connection is made to the MQTT Server
-    client.subscribe("/RIOT2/SensorData")
+    client.subscribe("/RioT/SensorData")
 
 
 # ***** Callback function to process the data published to the /RIOT2/SesorData Topic *****
@@ -87,14 +88,14 @@ def on_message(client, userdata, msg):
 
     # Read back the last written Sensor Data record and compare to what came in from the Node
     try:
-        cursor2 = conn.execute('''SELECT Node_ID, Date_Time, Temperature, Humidity, Pressure, Sequence FROM Sensor_Data
+        cursor = conn.execute('''SELECT Node_ID, Date_Time, Temperature, Humidity, Pressure, Sequence FROM Sensor_Data
         WHERE ROWID = (SELECT MAX(ROWID) FROM Sensor_Data)''');
 
     except:
         print("A problem was experienced reading from the Sensor_Data Table", sys.exc_info()[0])
         raise
 
-    for row in cursor2:
+    for row in cursor:
         print("		    Input Data                  Database Output")
         print("		    =========================   =======================")
         print("SENSOR DATA")
@@ -108,20 +109,30 @@ def on_message(client, userdata, msg):
 
     # Read back the last written Node Data record and compare to what came in from the Node
     try:
-        cursor2 = conn.execute('''SELECT Node_ID, Node_Type, MAC_Address, SW_Version FROM Node WHERE Node_ID =?''', (nodeId,));
+        cursor = conn.execute('''SELECT Node_ID, Node_Type, MAC_Address, SW_Version, Node_Location FROM Node WHERE Node_ID =?''', (nodeId,));
 
     except:
         print("A problem was experienced reading from the Node Table", sys.exc_info()[0])
         raise
 
-    for row in cursor2:
+    for row in cursor:
         print("\nNODE DATA")
         print("  Node ID 	   = ", nodeId, "   ", row[0])
         print("  Node Type 	   = ", nodeType,"                     ", row[1])
         print("  MAC Address 	   = ", macAddress, "         ", row[2])
         print("  Software Version = ", swVersion,  "                    ", row[3])
         print("\n\n")
+        nodeLocation = row[4]		
+    # Send Current temperature to the Home Assistant listening MQTT Topic
 
+    print("  Node Location = ", nodeLocation, ",  Temperature = ", temperature)
+
+    if(nodeLocation == "1. Main Floor"): client.publish("/biot/temperature/main", temperature)
+    elif(nodeLocation == "2. Upstairs"): client.publish("/biot/temperature/upstairs", temperature)
+    elif(nodeLocation == "3. Basement"): client.publish("/biot/temperature/basement", temperature)
+    elif(nodeLocation == "4. Attic"): client.publish("/biot/temperature/attic", temperature)
+    elif(nodeLocation == "5. Outside"): client.publish("/biot/temperature/outside", temperature)
+	
 # ============================================= MAIN PROGRAM ==================================================
 debug = 0
 
@@ -153,6 +164,7 @@ if (debug == 1): print("  -> Done")
 client = mqtt.Client()                  # Instantiate the MQTT client
 client.on_connect = on_connect          # Set the function executed once a connection is made to the MQTT server
 client.on_message = on_message          # Set the Callback function for a subscribed message
+client.username_pw_set("biot", "excaliber") # Set MQTT connection user ID and Password
 client.connect("127.0.0.1", 1883, 60)   # Connect to the MQTT server                                                                                                 
 
 # ***** Main Program Loop that runs continuously processing received messages or a <cntrl>c is hit

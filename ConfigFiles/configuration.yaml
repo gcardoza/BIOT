@@ -1,0 +1,126 @@
+homeassistant:
+  name: Cardoza's @ Peace Ct. P
+  latitude: 43.9286
+  longitude: -79.5269
+  elevation: 310
+  unit_system: metric
+  time_zone: America/Toronto
+  customize:
+    sensor.1_main:
+        friendly_name: Main_Floor
+        icon: mdi:food-fork-drink
+    sensor.2_upstairs:
+        friendly_name: Upstairs
+        icon: mdi:hotel
+    sensor.3_basement:
+        friendly_name: Basement
+        icon: mdi:thermometer-lines
+    sensor.4_attic:
+        friendly_name: Attic
+        icon: mdi:home
+    sensor.5_outside:
+        friendly_name: Outside
+        icon: mdi:flower
+
+
+# Show links to resources in log and frontend
+# introduction:
+
+# Enables the frontend
+frontend:
+
+http:
+  # Uncomment this to add a password (recommended!)
+  # api_password: PASSWORD
+
+# Checks for available updates
+updater:
+
+# Discover some devices automatically
+discovery:
+
+# Allows you to issue voice commands from the frontend in enabled browsers
+conversation:
+
+# Enables support for tracking state changes over time.
+history:
+
+# View all events in a logbook
+logbook:
+
+# Track the sun
+sun:
+
+# Weather Prediction
+sensor:
+  platform: yr
+
+mqtt:
+  broker: 127.0.0.1
+  port: 1883
+  client_id: home-assistant-1
+#  username: biot
+#  password: excaliber
+
+#mqtt:
+#  broker: 192.168.0.37
+#  port: 1883
+#  client_id: home-assistant-1
+  
+nest:
+  username: geof.cardoza@gmail.com
+  password: Merlot1987$
+
+climate:
+  platform: nest
+  name: "Nest Thermostats"
+
+# RIOT Weather Station Temperature Readings only
+sensor 1:
+  platform: mqtt
+  state_topic: "/biot/temperature/main"
+  name: "1 Main"
+  qos: 0
+  unit_of_measurement: "°C"
+
+sensor 2:
+  platform: mqtt
+  state_topic: "/biot/temperature/upstairs"
+  name: "2 Upstairs"
+  qos: 0
+  unit_of_measurement: "°C"
+  
+sensor 3:
+  platform: mqtt
+  state_topic: "/biot/temperature/basement"
+  name: "3 Basement"
+  qos: 0
+  unit_of_measurement: "°C"
+  
+sensor 4:
+  platform: mqtt
+  state_topic: "/biot/temperature/attic"
+  name: "4 Attic"
+  qos: 0
+  unit_of_measurement: "°C"
+  
+sensor 5:
+  platform: mqtt
+  state_topic: "/biot/temperature/outside"
+  name: "5 Outside"
+  qos: 0
+  unit_of_measurement: "°C"
+  
+group:
+####VIEWS - or Tabs
+
+####GROUPS - or Cards
+  RioT_Weather_Station:
+    - sensor.1_main
+    - sensor.2_upstairs
+    - sensor.3_basement
+    - sensor.4_attic
+    - sensor.5_outside
+  Nest_Thermostats:
+    - climate.main_floorfoyer
+    - climate.upstairshallway
