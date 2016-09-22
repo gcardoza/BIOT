@@ -13,6 +13,7 @@ import sqlite3
 import time
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
+import json
 
 # ============================================= DEFINED FUNCTIONS =============================================
 
@@ -126,13 +127,15 @@ def on_message(client, userdata, msg):
     # Send Current temperature to the Home Assistant listening MQTT Topic
 
     print("  Node Location = ", nodeLocation, ",  Temperature = ", temperature)
-
-    if(nodeLocation == "1. Main Floor"): client.publish("/biot/temperature/main", temperature)
-    elif(nodeLocation == "2. Upstairs"): client.publish("/biot/temperature/upstairs", temperature)
-    elif(nodeLocation == "3. Basement"): client.publish("/biot/temperature/basement", temperature)
-    elif(nodeLocation == "4. Attic"): client.publish("/biot/temperature/attic", temperature)
-    elif(nodeLocation == "5. Outside"): client.publish("/biot/temperature/outside", temperature)
-	
+    data = json.dumps({"Temperature": temperature, "Humidity": humidity, "Pressure": pressure})
+    print (data)
+    
+    if(nodeLocation == "1. Main Floor") : client.publish("/BioT/SensorData/main", data)
+    elif(nodeLocation == "2. Upstairs") : client.publish("/BioT/SensorData/upstairs", data)
+    elif(nodeLocation == "3. Basement") : client.publish("/BioT/SensorData/basement", data)
+    elif(nodeLocation == "4. Attic")    : client.publish("/BioT/SensorData/attic", data)
+    elif(nodeLocation == "5. Outside")  : client.publish("/BioT/SensorData/outside", data)
+    else : print("Unknown Location: ", nodeLocation)
 # ============================================= MAIN PROGRAM ==================================================
 debug = 0
 
