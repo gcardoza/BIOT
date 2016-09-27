@@ -34,16 +34,17 @@ def static_assets(path):
 @app.route('/nodes', methods=['GET'])
 def get_nodes():
     c = conn.cursor()    
-    c.execute('SELECT * from Node')
+    c.execute('SELECT Node_Location, Node_Id, Node_Type, MAC_ADDRESS, SW_Version, Node_Status from Node ORDER by Node_Location')
     resp = []
     for row in c.fetchall():
         resp.append({
-            'Node_Id': row[0],
-            'Node_type': row[1],
-            'MAC_ADDRESS': row[2],
-            'SW_Version': row[3],
-            'Node_Status': row[4],
-            'Node_Location': row[5],
+            'Node_Location': row[0],
+            'Node_Id': row[1],
+            'Node_type': row[2],
+            'MAC_ADDRESS': row[3],
+            'SW_Version': row[4],
+            'Node_Status': row[5],
+
         })
     return jsonify(data=resp) 
 
