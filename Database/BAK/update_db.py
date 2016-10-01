@@ -31,7 +31,7 @@ def process_NodeAlert(AlertMessage):
     # send the email
     server = smtplib.SMTP("smtp.gmail.com:587")
     server.starttls()
-    server.login(fromAddress,"$")
+    server.login(fromAddress,"Merlot1987$")
 
     if(debug > 1): print("Sending Alert Email to every Enabled User in biot database")
     cursor = conn.execute("SELECT Email_Address FROM User WHERE User_Status = 'Enabled'");
