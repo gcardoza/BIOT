@@ -15,15 +15,19 @@ conn.execute('''CREATE TABLE IF NOT EXISTS Node
 	Node_Location	TEXT);''')
 print ("  -> Node Table created successfully")
 conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location) \
-	VALUES ('RIOT2-5c:cf:7f:c6:ad:5c', '5c:cf:7f:c6:ad:5c', 'Inactive', '1. Main Floor')");
+	VALUES ('RIOT2-5c:cf:7f:87:5b:a6', '5c:cf:7f:87:5b:a6', 'Inactive', '1. Main Floor')");
 conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location) \
-	VALUES ('RIOT2-5c:cf:7f:00:72:6e', '5c:cf:7f:00:72:6e', 'Inactive', '2. Upstairs')");
+	VALUES ('RIOT2-5c:cf:7f:15:61:f5', '5c:cf:7f:15:61:f5', 'Inactive', '2. Upstairs')");
 conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location) \
-	VALUES ('RIOT2-5c:cf:7f:0d:d8:b3', '5c:cf:7f:0d:d8:b3', 'Inactive', '3. Basement')");
+	VALUES ('RIOT2-5c:cf:7f:15:16:e4', '5c:cf:7f:15:16:e4', 'Inactive', '3. Basement')");
 conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location) \
 	VALUES ('RIOT2-5c:cf:7f:c6:d2:f0', '5c:cf:7f:c6:d2:f0', 'Inactive', '4. Attic')");
 conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location) \
-	VALUES ('RIOT2-5c:cf:7f:c6:aa:f4', '5c:cf:7f:c6:aa:f4', 'Inactive', '5. Outside')");
+	VALUES ('RIOT2-5c:cf:7f:87:5d:7f', '5c:cf:7f:87:5d:7f', 'Inactive', '5. Outside')");
+conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location) \
+	VALUES ('RIOT2-5c:cf:7f:87:5d:xx', '5c:cf:7f:87:5d:7f', 'Inactive', '6. Laundry Rm')");
+conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location) \
+	VALUES ('RIOT2-5c:cf:7f:15:16:xx', '5c:cf:7f:15:16:e4', 'Inactive', '7. Water Mech Rm')");
 print ("  -> Node Table seeded successfully")
 
 print ("Creating Sensor_Data Table")

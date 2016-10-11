@@ -31,7 +31,7 @@ def send_NodeAlert(AlertMessage):
     # send the email
     server = smtplib.SMTP("smtp.gmail.com:587")
     server.starttls()
-    server.login(fromAddress,"$")
+    server.login(fromAddress,"Merlot1987$")
 
     if(debug > 1): print("  -> Sending Alert Email to every Enabled User in biot database")
     cursor = conn.execute("SELECT Email_Address FROM User WHERE User_Status = 'Enabled'");
@@ -126,7 +126,7 @@ def process_SensorData(node_Data):
         if (debug > 1): print("  -> Inserting Sensor Data into Database")
         conn.execute('''INSERT INTO Sensor_Data (Node_ID, Date_Time, Temperature, Humidity, Pressure, Sequence, Analog, Alarm, Digital_1) \
         VALUES (?,?,?,?,?,?,?,?,?)''', (nodeId, currentTime, temperature, humidity, pressure, sequence, analog, alarm, digital1));
-        if (debug > 1): print("\n     -> Done")
+        if (debug > 1): print("     -> Done\n")
 
     except:
         print("A problem was experienced updating the Sensor_Data Table", sys.exc_info()[0])
@@ -143,12 +143,12 @@ def process_SensorData(node_Data):
             if (debug > 1): print("     -> Node NOT in table.  INSERTING data into Node Table")
             curs.execute('''INSERT INTO Node (Node_ID, Node_Type, MAC_Address, SW_Version, Node_Status) \
             VALUES (?,?,?,?,"Active")''', (nodeId, nodeType, macAddress, swVersion));
-            if (debug > 1): print("        -> Done")
+            if (debug > 1): print("        -> Done\n")
         else:
             if (debug > 1): print("     -> Node EXISTS in table. UPDATING Node Table")
             curs.execute('''UPDATE Node SET Node_Type = ?, MAC_Address = ?, SW_Version = ?, Node_Status = "Active" WHERE Node_ID = ?''',
                            (nodeType, macAddress, swVersion, nodeId));
-            if (debug > 1): print("        -> Done")
+            if (debug > 1): print("        -> Done\n")
         
     except:
         print("A problem was experienced updating the Node Table", sys.exc_info()[0])
@@ -157,8 +157,7 @@ def process_SensorData(node_Data):
     # Commit the updates to the db
     if (debug > 1): print("  -> Committing table updates to database")
     conn.commit()
-    if (debug > 1): print("     -> Done")
-
+    if (debug > 1): print("     -> Done\n")
 
     # Read back the last written Sensor Data record and compare to what came in from the Node
     cursor = conn.execute('''SELECT Node_ID, Date_Time, Temperature, Humidity, Pressure, Sequence, Analog, Alarm, Digital_1 FROM Sensor_Data
@@ -174,6 +173,14 @@ def process_SensorData(node_Data):
         db_analog       = row[6]
         db_alarm        = row[7]
         db_digital1     = row[8]
+    
+    # Check if the Node has an operational Weather Sensor (if Temp = 999 then no working sensor was detected)
+    if(db_temperature == 999.0):
+        if(debug > 1): print("  -> No weather sensor was detected for this Node")
+        weatherSensorPresent = 0
+    else:
+        if(debug > 1): print("  -> A weather sensor was detected for this Node")
+        weatherSensorPresent = 1
         
     if(debug > 1):
         print("\n  -> Verifying data from database\n")
@@ -201,6 +208,8 @@ def process_SensorData(node_Data):
         db_swVersion = row[3]
         nodeLocation = row[4]
     
+    if(nodeLocation == None): nodeLocation="Location Not Defined"   #Set a defult node location if none has been assigned
+    
     if(debug > 1):
         print("\n  NODE DATA")
         print("    Node ID          = ", nodeId, "   ", db_nodeId)
@@ -211,54 +220,68 @@ def process_SensorData(node_Data):
         print(" ")
      
     # ***** SEND CURRENT TEMPERATURE TO THE HOME ASSISTANT LISTENING MQTT TOPIC *****
-    if(debug >= 1): print("  -> Sending Data to Home Assistant for Node Location: ", nodeLocation)
-    data = json.dumps({"Temperature": temperature, "Humidity": humidity, "Pressure": pressure})
-    if(debug >= 1): print ("  -> Data:", data)
-    
-    if(nodeLocation == "1. Main Floor") : client.publish("/BioT/SensorData/main", data)
-    elif(nodeLocation == "2. Upstairs") : client.publish("/BioT/SensorData/upstairs", data)
-    elif(nodeLocation == "3. Basement") : client.publish("/BioT/SensorData/basement", data)
-    elif(nodeLocation == "4. Attic")    : client.publish("/BioT/SensorData/attic", data)
-    elif(nodeLocation == "5. Outside")  : client.publish("/BioT/SensorData/outside", data)
-    else: print("Unknown Location: ", nodeLocation)
+    # Only Send data if the Node has a working weather sensor
+    if(weatherSensorPresent): 
+        if(debug >= 1): print("  -> Sending Data to Home Assistant for Node Location: ", nodeLocation)
+        data = json.dumps({"Temperature": temperature, "Humidity": humidity, "Pressure": pressure})
+        if(debug >= 1): print ("  -> Data:", data)
+        
+        if(nodeLocation == "1. Main Floor") : client.publish("/BioT/SensorData/main", data)
+        elif(nodeLocation == "2. Upstairs") : client.publish("/BioT/SensorData/upstairs", data)
+        elif(nodeLocation == "3. Basement") : client.publish("/BioT/SensorData/basement", data)
+        elif(nodeLocation == "4. Attic")    : client.publish("/BioT/SensorData/attic", data)
+        elif(nodeLocation == "5. Outside")  : client.publish("/BioT/SensorData/outside", data)
+        else: print("     -> *** Unknown Location: ", nodeLocation)
 
     # ***** CHECK FOR AND PROCESS ALERT CONDITIONS *****
     if(debug > 1): print("\n  -> Checking if any Alert conditions have been met")
     
-    # Read the Alert thresholds for this Node
-    if(debug > 1): print("     -> Reading the Alert Thresholds for this Node")
+    # Check if an Alert record exists for this Node (i.e this is a new node and hasn't been setup) 
+    curs.execute('SELECT count(*) FROM Alert_Rules WHERE Node_ID = ?', (nodeId,));
+    data=curs.fetchone()[0]
+    if (data != 0):
     
-    cursor = conn.execute('''SELECT Low_Temperature, High_Temperature, Low_Humidity, High_Humidity, 
-                          Low_Pressure, High_Pressure, Alarm_Value, Update_Delay FROM Alert_Rules WHERE Node_ID =?''', (nodeId,));
-    for row in cursor:
-        lowTemp   = row[0]
-        highTemp  = row[1]
-        lowHum    = row[2]
-        highHum   = row[3]
-        lowPres   = row[4]
-        highPres  = row[5]
-        alarmVal  = row[6]
-        updateDel = row[7]
-        if(debug > 1): print("     ->LT: ", lowTemp, " HT: ", highTemp, " LH: ", lowHum, " HH: ", highHum,
-                            " LP: ", lowPres, " HP: ", highPres, " AL: ", alarmVal, " UD: ", updateDel)
-    
-    # Check if Temperature thresholds have been exceeded
-    if(db_temperature <= lowTemp): process_NodeAlert(nodeLocation, lowTemp, 'TemperatureLow', updateDel)
-    elif(db_temperature >= highTemp): process_NodeAlert(nodeLocation, highTemp, 'TemperatureHigh', updateDel)
-    
-    # Check if Humidity thresholds have been exceeded
-    if(db_humidity <= lowHum): process_NodeAlert(nodeLocation, lowHum, 'HumidityLow', updateDel)
-    elif(db_humidity >= highHum): process_NodeAlert(nodeLocation, highHum, 'HumidityHigh', updateDel)
-    
-    # Check if Pressure thresholds have been exceeded
-    if(db_pressure <= lowPres): process_NodeAlert(nodeLocation, lowPres, 'PressureLow', updateDel)
-    elif(db_pressure >= highPres): process_NodeAlert(nodeLocation, highPres, 'PressureHigh', updateDel)
-    
-    # Check if an Alarm has been triggered
-    if(db_alarm >= alarmVal): process_NodeAlert(nodeLocation, alarmVal, 'WaterLeak', updateDel)
+        # Read the Alert thresholds for this Node
+        if(debug > 1): print("     -> Reading the Alert Thresholds for this Node")
+      
+        cursor = conn.execute('''SELECT Low_Temperature, High_Temperature, Low_Humidity, High_Humidity, 
+                              Low_Pressure, High_Pressure, Alarm_Value, Update_Delay FROM Alert_Rules WHERE Node_ID =?''', (nodeId,));
+        for row in cursor:
+            lowTemp   = row[0]
+            highTemp  = row[1]
+            lowHum    = row[2]     
+            highHum   = row[3]
+            lowPres   = row[4]
+            highPres  = row[5]
+            alarmVal  = row[6]
+            updateDel = row[7]
+            if(debug > 1): print("     -> LT: ", lowTemp, " HT: ", highTemp, " LH: ", lowHum, " HH: ", highHum,
+                                " LP: ", lowPres, " HP: ", highPres, " AL: ", alarmVal, " UD: ", updateDel)
+        
+        # Only procees weather Alerts if the Node has a working weather sensor
+        if(weatherSensorPresent):
+            if(debug >1): print("     -> Processing Weather Related Alerts")
+            # Check if Temperature thresholds have been exceeded
+            if(db_temperature <= lowTemp): process_NodeAlert(nodeLocation, lowTemp, 'TemperatureLow', updateDel)
+            elif(db_temperature >= highTemp): process_NodeAlert(nodeLocation, highTemp, 'TemperatureHigh', updateDel)
+            
+            # Check if Humidity thresholds have been exceeded
+            if(db_humidity <= lowHum): process_NodeAlert(nodeLocation, lowHum, 'HumidityLow', updateDel)
+            elif(db_humidity >= highHum): process_NodeAlert(nodeLocation, highHum, 'HumidityHigh', updateDel)
+            
+            # Check if Pressure thresholds have been exceeded
+            if(db_pressure <= lowPres): process_NodeAlert(nodeLocation, lowPres, 'PressureLow', updateDel)
+            elif(db_pressure >= highPres): process_NodeAlert(nodeLocation, highPres, 'PressureHigh', updateDel)
+        
+        # Check if an Alarm has been triggered
+        if(debug >1): print("     -> Processing Alarm Related Alerts")
+        if(db_alarm >= alarmVal): process_NodeAlert(nodeLocation, alarmVal, 'WaterLeak', updateDel)
 
-    if(debug > 1): print("\n<- process_SensorData: Done")    
-    
+    else:
+        if(debug > 1): print("     -> No Alert_Rules records found.  Not processing Alerts for this Node.")
+
+    if(debug > 1): print("\n<- process_SensorData: Done")
+        
 # ***** PROCESS EVENT ON CONNECTION TO MQTT SERVER AND ENSURE SUBSCRIBTION TO /RIOT2/SENSORDATA TOPIC *****
 def on_connect(client, userdata, flags, rc):                                                                   
     if (debug > 1): print("on_connect:  Connected to MQTT Server.  Result code = "+str(rc))
