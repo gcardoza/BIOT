@@ -31,7 +31,7 @@ def send_NodeAlert(AlertMessage):
     # send the email
     server = smtplib.SMTP("smtp.gmail.com:587")
     server.starttls()
-    server.login(fromAddress,"Merlot1987$")
+    server.login(fromAddress,"$")
 
     if(debug > 1): print("  -> Sending Alert Email to every Enabled User in biot database")
     cursor = conn.execute("SELECT Email_Address FROM User WHERE User_Status = 'Enabled'");
@@ -141,8 +141,8 @@ def process_SensorData(node_Data):
     
         if (data == 0):
             if (debug > 1): print("     -> Node NOT in table.  INSERTING data into Node Table")
-            curs.execute('''INSERT INTO Node (Node_ID, Node_Type, MAC_Address, SW_Version, Node_Status) \
-            VALUES (?,?,?,?,"Active")''', (nodeId, nodeType, macAddress, swVersion));
+            curs.execute('''INSERT INTO Node (Node_ID, Node_Type, MAC_Address, SW_Version, Node_Status, Node_Location) \
+            VALUES (?,?,?,?,"Active","Location Not Defined")''', (nodeId, nodeType, macAddress, swVersion));
             if (debug > 1): print("        -> Done\n")
         else:
             if (debug > 1): print("     -> Node EXISTS in table. UPDATING Node Table")
@@ -207,8 +207,6 @@ def process_SensorData(node_Data):
         db_macAddress = row[2]
         db_swVersion = row[3]
         nodeLocation = row[4]
-    
-    if(nodeLocation == None): nodeLocation="Location Not Defined"   #Set a defult node location if none has been assigned
     
     if(debug > 1):
         print("\n  NODE DATA")
