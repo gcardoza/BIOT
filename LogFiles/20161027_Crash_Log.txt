@@ -1,0 +1,47 @@
+process_NodeAlert: Alert Triggered
+  -> Node:  7. Well Pump  Threshold Exceeded:  103.0  AlertId:  PressureHigh  UpdateDelay:  3600.0
+  -> Checking if a similar Alert has already been sent to this Node
+     -> Previous Alert Record found,  Age:  3660
+  -> Creating Alert Message to Send to Node
+     -> ***  2016/10/25 - 22:46:27 - 7. Well Pump - The Pressure has rissen above  103.0
+  -> Inserting new Alert Entry into Alert_Status Table
+  -> Alert Message:  2016/10/25 - 22:46:27 - 7. Well Pump - The Pressure has rissen above  103.0
+
+send_NodeAlert:  2016/10/25 - 22:46:27 - 7. Well Pump - The Pressure has rissen above  103.0
+  -> Connecting to smtp server
+Traceback (most recent call last):
+  File "./update.py", line 343, in <module>
+    client.loop_forever()                   # The client will loop here forever and process subscribed messages.
+  File "/usr/local/lib/python3.4/dist-packages/paho/mqtt/client.py", line 1378, in loop_forever
+    rc = self.loop(timeout, max_packets)
+  File "/usr/local/lib/python3.4/dist-packages/paho/mqtt/client.py", line 897, in loop
+    rc = self.loop_read(max_packets)
+  File "/usr/local/lib/python3.4/dist-packages/paho/mqtt/client.py", line 1177, in loop_read
+    rc = self._packet_read()
+  File "/usr/local/lib/python3.4/dist-packages/paho/mqtt/client.py", line 1766, in _packet_read
+    rc = self._packet_handle()
+  File "/usr/local/lib/python3.4/dist-packages/paho/mqtt/client.py", line 2239, in _packet_handle
+    return self._handle_publish()
+  File "/usr/local/lib/python3.4/dist-packages/paho/mqtt/client.py", line 2414, in _handle_publish
+    self._handle_on_message(message)
+  File "/usr/local/lib/python3.4/dist-packages/paho/mqtt/client.py", line 2574, in _handle_on_message
+    self.on_message(self, self._userdata, message)
+  File "./update.py", line 301, in on_message
+    if(msg.topic == "/RioT/SensorData" and len(mqtt_Data) >=72 ):  process_SensorData(mqtt_Data)
+  File "./update.py", line 272, in process_SensorData
+    elif(db_pressure >= highPres): process_NodeAlert(nodeLocation, highPres, 'PressureHigh', updateDel)
+  File "./update.py", line 100, in process_NodeAlert
+    send_NodeAlert(message)
+  File "./update.py", line 32, in send_NodeAlert
+    server = smtplib.SMTP("smtp.gmail.com:587")
+  File "/usr/lib/python3.4/smtplib.py", line 242, in __init__
+    (code, msg) = self.connect(host, port)
+  File "/usr/lib/python3.4/smtplib.py", line 321, in connect
+    self.sock = self._get_socket(host, port, self.timeout)
+  File "/usr/lib/python3.4/smtplib.py", line 292, in _get_socket
+    self.source_address)
+  File "/usr/lib/python3.4/socket.py", line 491, in create_connection
+    for res in getaddrinfo(host, port, 0, SOCK_STREAM):
+  File "/usr/lib/python3.4/socket.py", line 530, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+socket.gaierror: [Errno -2] Name or service not known

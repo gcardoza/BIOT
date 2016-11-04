@@ -1,3 +1,3 @@
 #!/bin/bash
 
-mosquitto_sub -t "/RIOT2/SensorData" | ts "%b %d %H:%M:%S,"
+mosquitto_sub -t "/RioT/Status" | ts "%b %d %H:%M:%S,"

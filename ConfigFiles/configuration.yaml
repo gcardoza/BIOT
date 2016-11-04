@@ -7,7 +7,7 @@ homeassistant:
   time_zone: America/Toronto
   customize:
     sensor.1_main:
-        friendly_name: Main_Floor
+        friendly_name: Main Floor
         icon: mdi:food-fork-drink
     sensor.2_upstairs:
         friendly_name: Upstairs
@@ -21,8 +21,36 @@ homeassistant:
     sensor.5_outside:
         friendly_name: Outside
         icon: mdi:flower
-
-
+    sensor.1_main_2:
+        friendly_name: Main Floor
+        icon: mdi:food-fork-drink
+    sensor.2_upstairs_2:
+        friendly_name: Upstairs
+        icon: mdi:hotel
+    sensor.3_basement_2:
+        friendly_name: Basement
+        icon: mdi:thermometer-lines
+    sensor.4_attic_2:
+        friendly_name: Attic
+        icon: mdi:home
+    sensor.5_outside_2:
+        friendly_name: Outside
+        icon: mdi:flower
+    sensor.1_main_3:
+        friendly_name: Main Floor
+        icon: mdi:food-fork-drink
+    sensor.2_upstairs_3:
+        friendly_name: Upstairs
+        icon: mdi:hotel
+    sensor.3_basement_3:
+        friendly_name: Basement
+        icon: mdi:thermometer-lines
+    sensor.4_attic_3:
+        friendly_name: Attic
+        icon: mdi:home
+    sensor.5_outside_3:
+        friendly_name: Outside
+        icon: mdi:flower
 # Show links to resources in log and frontend
 # introduction:
 
@@ -52,21 +80,17 @@ logbook:
 sun:
 
 # Weather Prediction
-sensor:
+sensor a:
   platform: yr
 
 mqtt:
   broker: 127.0.0.1
   port: 1883
   client_id: home-assistant-1
+  keepalive: 60
 #  username: biot
 #  password: excaliber
-
-#mqtt:
-#  broker: 192.168.0.37
-#  port: 1883
-#  client_id: home-assistant-1
-  
+ 
 nest:
   username: geof.cardoza@gmail.com
   password: Merlot1987$
@@ -76,51 +100,152 @@ climate:
   name: "Nest Thermostats"
 
 # RIOT Weather Station Temperature Readings only
-sensor 1:
-  platform: mqtt
-  state_topic: "/biot/temperature/main"
-  name: "1 Main"
-  qos: 0
-  unit_of_measurement: "°C"
+sensor:
+  # ***** Temperature *****
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/main"
+    name: "1 Main"
+    qos: 0
+    unit_of_measurement: "°C"
+    value_template: '{{ value_json.Temperature }}'
 
-sensor 2:
-  platform: mqtt
-  state_topic: "/biot/temperature/upstairs"
-  name: "2 Upstairs"
-  qos: 0
-  unit_of_measurement: "°C"
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/upstairs"
+    name: "2 Upstairs"
+    qos: 0
+    unit_of_measurement: "°C"
+    value_template: '{{ value_json.Temperature }}'
   
-sensor 3:
-  platform: mqtt
-  state_topic: "/biot/temperature/basement"
-  name: "3 Basement"
-  qos: 0
-  unit_of_measurement: "°C"
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/basement"
+    name: "3 Basement"
+    qos: 0
+    unit_of_measurement: "°C"
+    value_template: '{{ value_json.Temperature }}'
   
-sensor 4:
-  platform: mqtt
-  state_topic: "/biot/temperature/attic"
-  name: "4 Attic"
-  qos: 0
-  unit_of_measurement: "°C"
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/attic"
+    name: "4 Attic"
+    qos: 0
+    unit_of_measurement: "°C"
+    value_template: '{{ value_json.Temperature }}'
+ 
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/outside"
+    name: "5 Outside"
+    qos: 0
+    unit_of_measurement: "°C"
+    value_template: '{{ value_json.Temperature }}'
+        
+  # ***** Humidity *****
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/main"
+    name: "1 Main"
+    qos: 0
+    unit_of_measurement: "%"
+    value_template: '{{ value_json.Humidity }}'
+
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/upstairs"
+    name: "2 Upstairs"
+    qos: 0
+    unit_of_measurement: "%"
+    value_template: '{{ value_json.Humidity }}'
   
-sensor 5:
-  platform: mqtt
-  state_topic: "/biot/temperature/outside"
-  name: "5 Outside"
-  qos: 0
-  unit_of_measurement: "°C"
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/basement"
+    name: "3 Basement"
+    qos: 0
+    unit_of_measurement: "%"
+    value_template: '{{ value_json.Humidity }}'
+  
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/attic"
+    name: "4 Attic"
+    qos: 0
+    unit_of_measurement: "%"
+    value_template: '{{ value_json.Humidity }}'
+ 
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/outside"
+    name: "5 Outside"
+    qos: 0
+    unit_of_measurement: "%"
+    value_template: '{{ value_json.Humidity }}'
+  
+    # ***** Pressure *****
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/main"
+    name: "1 Main"
+    qos: 0
+    unit_of_measurement: "kPa"
+    value_template: '{{ value_json.Pressure }}'
+
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/upstairs"
+    name: "2 Upstairs"
+    qos: 0
+    unit_of_measurement: "kPa"
+    value_template: '{{ value_json.Pressure }}'
+  
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/basement"
+    name: "3 Basement"
+    qos: 0
+    unit_of_measurement: "kPa"
+    value_template: '{{ value_json.Pressure }}'
+  
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/attic"
+    name: "4 Attic"
+    qos: 0
+    unit_of_measurement: "kPa"
+    value_template: '{{ value_json.Pressure }}'
+ 
+  - platform: mqtt
+    state_topic: "/BioT/SensorData/outside"
+    name: "5 Outside"
+    qos: 0
+    unit_of_measurement: "kPa"
+    value_template: '{{ value_json.Pressure }}'
+
+  - platform: template
+    sensors:
+      solar_angle:
+        value_template: '{{ states.sun.sun.attributes.elevation }}'
+        friendly_name: 'Sun angle'
+        unit_of_measurement: 'degrees'
+      sunrise:
+        value_template: '{{ states.sun.sun.attributes.next_rising }}'
+
   
 group:
 ####VIEWS - or Tabs
 
 ####GROUPS - or Cards
-  RioT_Weather_Station:
+  RioT_Temperature:
     - sensor.1_main
     - sensor.2_upstairs
     - sensor.3_basement
     - sensor.4_attic
     - sensor.5_outside
+  RioT_Humidity:
+    - sensor.1_main_2
+    - sensor.2_upstairs_2
+    - sensor.3_basement_2
+    - sensor.4_attic_2
+    - sensor.5_outside_2    
+  RioT_Pressure:
+    - sensor.1_main_3
+    - sensor.2_upstairs_3
+    - sensor.3_basement_3
+    - sensor.4_attic_3
+    - sensor.5_outside_3
+
   Nest_Thermostats:
     - climate.main_floorfoyer
     - climate.upstairshallway
+    
+  Chromecast_Players:
+    - media_player.gc_chromecast_family_rm
+    - media_player.gc_cc_master_bed_room
