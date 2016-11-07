@@ -27,7 +27,9 @@ conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location
 conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location) \
 	VALUES ('RIOT2-5c:cf:7f:87:5d:xx', '5c:cf:7f:87:5d:7f', 'Inactive', '6. Laundry Rm')");
 conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location) \
-	VALUES ('RIOT2-5c:cf:7f:15:16:xx', '5c:cf:7f:15:16:e4', 'Inactive', '7. Water Mech Rm')");
+	VALUES ('RIOT2-5c:cf:7f:0d:d8:b3', '5c:cf:7f:15:16:e4', 'Inactive', '7. Water Mech Rm')");
+conn.execute("INSERT INTO Node (Node_ID, MAC_Address, Node_Status, Node_Location) \
+	VALUES ('RIOT3-5c:cf:7f:00:72:6e', '5c:cf:7f:00:72:6e', 'Inactive', '8. Irrigation System')");
 print ("  -> Node Table seeded successfully")
 
 print ("Creating Sensor_Data Table")
@@ -92,15 +94,15 @@ print ("  -> Alert_Messages Table seeded successfully")
 
 print ("Creating Alert_Rules Table");
 conn.execute('''CREATE TABLE IF NOT EXISTS Alert_Rules
-	(Node_ID 	    TEXT,
-	Low_Temperature REAL,
-    High_Temperature    REAL,
-    Low_Humidity    REAL,
-    High_Humidity   REAL,
-    Low_Pressure    REAL,
-    High_Pressure   REAL,
-    Alarm_Value     REAL,
-    Update_Delay    REAL);''')
+	( Node_ID 	        TEXT,
+    Low_Temperature   REAL,
+    High_Temperature  REAL,
+    Low_Humidity      REAL,
+    High_Humidity     REAL,
+    Low_Pressure      REAL,
+    High_Pressure     REAL,
+    Alarm_Value       REAL,
+    Update_Delay      REAL);''')
 print ("  -> Alert_Rules Table created successfully")
 conn.execute("INSERT INTO Alert_Rules (Node_ID, Low_Temperature, High_Temperature, Low_Humidity, High_Humidity, Low_Pressure, High_Pressure, Alarm_Value, Update_Delay) \
 	VALUES ('RIOT2-5c:cf:7f:c6:ad:5c', 15, 30, 20, 90, 100, 103, 1, 3600)");
@@ -112,7 +114,45 @@ conn.execute("INSERT INTO Alert_Rules (Node_ID, Low_Temperature, High_Temperatur
 	VALUES ('RIOT2-5c:cf:7f:c6:d2:f0', 15, 30, 20, 90, 100, 103, 1, 3600)");
 conn.execute("INSERT INTO Alert_Rules (Node_ID, Low_Temperature, High_Temperature, Low_Humidity, High_Humidity, Low_Pressure, High_Pressure, Alarm_Value, Update_Delay) \
 	VALUES ('RIOT2-5c:cf:7f:c6:aa:f4',  5, 30, 20, 90, 100, 103, 1, 3600)");
-print ("  -> Node Alert_Rules Table seeded successfully")
+print ("  -> Alert_Rules Table seeded successfully")
+
+conn.execute('''CREATE TABLE IF NOT EXISTS Zone
+	( Zone_ID             INT,
+    Node_ID             TEXT,
+	  Zone_Location       TEXT,
+    Irrigation_Type     TEXT,
+	  Scheduled_OnTime    INT,
+    Current_Zone_Status TEXT,
+    Last_OnTime         INT,
+    Last_Date_Time_On   INT,
+    Last_Date_Time_Off  INT);''')
+print ("  -> Zone Table created successfully")
+conn.execute("INSERT INTO Zone (Zone_ID, Zone_Location, Irrigation_Type, Scheduled_OnTime) \
+	VALUES (1, 'Front Lawn - East Side', 'Sprayer', 1800)");
+conn.execute("INSERT INTO Zone (Zone_ID, Zone_Location, Irrigation_Type, Scheduled_OnTime) \
+	VALUES (2, 'Front Lawn - Centre Area', 'Sprayer', 1800)");
+conn.execute("INSERT INTO Zone (Zone_ID, Zone_Location, Irrigation_Type, Scheduled_OnTime) \
+	VALUES (3, 'Front Lawn - West Side', 'Sprayer', 1800)");
+conn.execute("INSERT INTO Zone (Zone_ID, Zone_Location, Irrigation_Type, Scheduled_OnTime) \
+	VALUES (4, 'Vegetable Garder and East Entrance', 'Soaker', 3600)");
+conn.execute("INSERT INTO Zone (Zone_ID, Zone_Location, Irrigation_Type, Scheduled_OnTime) \
+	VALUES (5, 'Front Sitting Area and West Entrance', 'Soaker', 3600)");
+conn.execute("INSERT INTO Zone (Zone_ID, Zone_Location, Irrigation_Type, Scheduled_OnTime) \
+	VALUES (6, 'Kitchen Sitting Area and Front Office', 'Soaker', 3600)");
+conn.execute("INSERT INTO Zone (Zone_ID, Zone_Location, Irrigation_Type, Scheduled_OnTime) \
+	VALUES (7, 'Future TBD', 'Drip', 0)");
+conn.execute("INSERT INTO Zone (Zone_ID, Zone_Location, Irrigation_Type, Scheduled_OnTime) \
+	VALUES (8, 'Future TBD', 'Drip', 0)");
+print ("  -> Zone Table seeded successfully")
+
+conn.execute('''CREATE TABLE IF NOT EXISTS Zone_Status
+	( Zone_ID         INT,
+    Node_ID         TEXT,
+    Date_Time       INT,
+    Zone_Status     TEXT,
+    Zone_Ontime     INT);''')
+print ("  -> Zone_Status Table created successfully")
+print ("  -> Zone_Status Table seeded by RioT3 Status Updates")
 
 conn.commit()
 

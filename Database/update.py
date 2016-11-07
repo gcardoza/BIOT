@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 
-# Project:	BIOT Home IOT Base Station - Updates SQL database with RIOT2 published SensorData
-# Author:	  Geofrey Cardoza
+# Project:	BIOT Home IOT Base Station - Updates SQL database with RioT2 & RioT3 published Data
+# Author:	Geofrey Cardoza
 # Company:	Excaliber Inc. (c)
 # Baseline:	June 28th, 2016
-# Revision:	October 1st, 2016  v1.2
-# Change:   Added Alert Functionality 
+# Revision:	November 6th, 2016  v1.4
+# Change:   Normalized RioT2 data, Added RioT3 Irrigation Data Support, Externalized Security Data
 
+import os
 import serial
 import sys
 import sqlite3
@@ -18,21 +19,24 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-# ============================================= DEFINED FUNCTIONS =============================================
+# ============================================ ENVIRONMENT VARIABLES ==========================================
+MQTT_Id               = os.environ['MQTT_Id']
+MQTT_Password         = os.environ["MQTT_Password"]
+BioT_Email_Address    = os.environ["BioT_Email_Address"]
+BioT_Email_Password   = os.environ["BioT_Email_Password"]
 
+# ============================================= DEFINED FUNCTIONS =============================================
 # ***** SEND THE ALERT DATA TO ALL ENABLED USERS *****
 def send_NodeAlert(AlertMessage):
     if(debug >= 1): print("\nsend_NodeAlert: ", AlertMessage)
-    
-    #to and from addresses
-    fromAddress = "biot.riot@gmail.com"
-    
+   
     if(debug > 1): print ("  -> Connecting to smtp server")
     # send the email
     server = smtplib.SMTP("smtp.gmail.com:587")
     server.starttls()
-    server.login(fromAddress,"$")
+    server.login(BioT_Email_Address, BioT_Email_Password)
 
+    #get list of to: addresses from User Table
     if(debug > 1): print("  -> Sending Alert Email to every Enabled User in biot database")
     cursor = conn.execute("SELECT Email_Address FROM User WHERE User_Status = 'Enabled'");
     for row in cursor:
@@ -40,14 +44,14 @@ def send_NodeAlert(AlertMessage):
         
         if(debug > 1): print("     -> Composing Alert Email MIME message")
         msg = MIMEMultipart()
-        msg['From'] = fromAddress
+        msg['From'] = BioT_Email_Address
         msg['To'] = toAddress
         msg['Subject'] = "*** RioT Alert Message ***"
         msg.attach(MIMEText(AlertMessage, 'plain'))
         text = msg.as_string()
 
         if(debug >= 1): print("     -> Sending Alert EMail To: ", toAddress)
-        server.sendmail(fromAddress, toAddress, text)
+        server.sendmail(BioT_Email_Address, toAddress, text)
     server.quit()
     if(debug > 1): print ("\n<- send_NodeAlert:  Done")    
     
@@ -101,22 +105,22 @@ def process_NodeAlert(nodeLocation, alertValue, alertId, updateDelay):
 
     if(debug > 1): print("\n<- process_NodeAlert: Done")
 
-# ***** PROCESS THE NODE DATA PUBLISHED TO THE /RIOT/SESORDATA TOPIC *****
+# ***** PROCESS THE NODE DATA PUBLISHED TO THE /RioT/Status TOPIC *****
 def process_SensorData(node_Data):
-    if(debug > 1): print("process_SensorData: Processing data from RioT")
+    if(debug > 1): print("process_SensorData: Processing data from RioT2")
 
     # ***** Parse each data field from the record *****
     nodeType        = node_Data[3:8]
     macAddress      = node_Data[9:26]
     nodeId          = node_Data[3:26]
     swVersion       = node_Data[30:35]
-    temperature     = node_Data[39:44]
-    humidity        = node_Data[48:53]
-    pressure        = node_Data[57:62]
-    sequence        = node_Data[66:72]
-    analog          = node_Data[76:80]
-    alarm           = node_Data[84:85]
-    digital1        = node_Data[89:90]
+    sequence        = node_Data[39:45]
+    temperature     = node_Data[53:58]
+    humidity        = node_Data[62:67]
+    pressure        = node_Data[71:76]
+    analog          = node_Data[80:84]
+    alarm           = node_Data[88:89]
+    digital1        = node_Data[93:94]
 
     # Get current time fo rthe time-stamp (will use Unix Time)
     currentTime = int(time.time())
@@ -190,10 +194,10 @@ def process_SensorData(node_Data):
         print("    Node ID          = ", nodeId, "   ", db_nodeId)
         print("    Date & Time      = ", time.strftime("%Y/%m/%d - %H:%M:%S", time.localtime(currentTime)),
               "     ", time.strftime("%Y/%m/%d - %H:%M:%S", time.localtime(db_time)))
+        print("    Sequence         = ", sequence, "                        ", db_sequence)
         print("    Temperature      = ", temperature, "                      ", db_temperature)
         print("    Humidity         = ", humidity, "                      ", db_humidity)
         print("    Pressure         = ", pressure, "                     ", db_pressure)
-        print("    Sequence         = ", sequence, "                        ", db_sequence)
         print("    Analog           = ", analog, "                        ", db_analog)
         print("    Alarm            = ", alarm, "                         ", db_alarm)
         print("    Digital_1        = ", digital1, "                         ", db_digital1)
@@ -280,15 +284,99 @@ def process_SensorData(node_Data):
 
     if(debug > 1): print("\n<- process_SensorData: Done")
         
+# ***** PROCESS THE IRRIGATION STATUS PUBLISHED TO THE /RioT/Status TOPIC *****
+def process_IrrigationStatus(node_Data):
+    if(debug > 1): print("process_IrrigationStatus: Processing data from RioT3")
+
+    # ***** Parse each data field from the record *****
+    nodeType        = node_Data[3:8]
+    macAddress      = node_Data[9:26]
+    nodeId          = node_Data[3:26]
+    swVersion       = node_Data[30:35]
+    sequence        = node_Data[39:45]
+    activeZone      = node_Data[51:52]
+    zoneOnTime      = node_Data[53:58]
+    if(int(zoneOnTime) == 0): zoneStatus = 'Off'
+    else: zoneStatus = 'On'
+
+    # Get current time for the time-stamp (will use Unix Time)
+    currentTime = int(time.time())
+    
+    if(debug > 1):
+        print("\n  -> Verifying data from database\n")
+        print("  		    Input Data                  Database Output")
+        print("	  	    =========================   =======================")
+        print("  SENSOR DATA")
+        print("    Node ID          = ", nodeId, "   ", nodeId)
+        print("    Date & Time      = ", time.strftime("%Y/%m/%d - %H:%M:%S", time.localtime(currentTime)),
+              "     ", time.strftime("%Y/%m/%d - %H:%M:%S", time.localtime(currentTime)))
+        print("    Sequence         = ", sequence, "                        ", sequence)
+        print("    Active Zone      =     ", activeZone, "                          ", activeZone)
+        print("    Zone On-Time     = ", zoneOnTime, "                      ", zoneOnTime)
+        print("    Zone Status      =     ", zoneStatus, "                        ", zoneStatus)
+
+    # ***** UPDATE NODE TABLE WITH RIOT3 DATA *****
+    try:
+        if (debug > 1): print("  -> Checking if data exists in Table for Node: ", nodeId)
+        curs.execute('SELECT count(*) FROM Node WHERE Node_ID = ?', (nodeId,));
+
+        data=curs.fetchone()[0]
+    
+        if (data == 0):
+            if (debug > 1): print("     -> Node NOT in table.  INSERTING data into Node Table")
+            curs.execute('''INSERT INTO Node (Node_ID, Node_Type, MAC_Address, SW_Version, Node_Status, Node_Location) \
+            VALUES (?,?,?,?,"Active","Location Not Defined")''', (nodeId, nodeType, macAddress, swVersion));
+            if (debug > 1): print("        -> Done\n")
+        else:
+            if (debug > 1): print("     -> Node EXISTS in table. UPDATING Node Table")
+            curs.execute('''UPDATE Node SET Node_Type = ?, MAC_Address = ?, SW_Version = ?, Node_Status = "Active" WHERE Node_ID = ?''',
+                           (nodeType, macAddress, swVersion, nodeId));
+            if (debug > 1): print("        -> Done\n")
+        
+    except:
+        print("A problem was experienced updating the Node Table", sys.exc_info()[0])
+        raise
+
+    # ***** INSERT ZONE_STATUS TABLE WITH RIOT3 DATA TABLE *****
+    try:
+        if (debug > 1): print("  -> Inserting Irrigation Zone_Status Data into Database")
+        conn.execute('''INSERT INTO Zone_Status (Node_ID, Zone_ID, Date_Time, Zone_Status, Zone_OnTime) \
+        VALUES (?,?,?,?,?)''', (nodeId, activeZone, currentTime, zoneStatus, zoneOnTime));
+        if (debug > 1): print("     -> Done\n")
+
+    except:
+        print("A problem was experienced updating the Zone_Status Table", sys.exc_info()[0])
+        raise
+
+    # ***** UPDATE ZONE TABLE WITH RIOT3 DATA *****
+    try:
+        if (debug > 1): print("  -> Updating Irrigation Zone Table")
+        if(zoneStatus == 'On'):
+          conn.execute('''Update Zone SET Node_ID = ?, Current_Zone_Status = ?, Last_OnTime = ?, Last_Date_Time_On = ? WHERE Zone_ID = ?''',
+                      (nodeId, zoneStatus, zoneOnTime, currentTime, activeZone));
+        else:
+          conn.execute('''Update Zone SET Node_ID = ?, Current_Zone_Status = ?, Last_Date_Time_Off = ? WHERE Zone_ID = ?''',
+                      (nodeId, zoneStatus, currentTime, activeZone));        
+        if (debug > 1): print("     -> Done\n")
+
+    except:
+        print("A problem was experienced updating the Zone Table", sys.exc_info()[0])
+        raise
+
+    # Commit the updates to the db
+    if (debug > 1): print("  -> Committing table updates to database")
+    conn.commit()
+    if (debug > 1): print("     -> Done")
+
+  
 # ***** PROCESS EVENT ON CONNECTION TO MQTT SERVER AND ENSURE SUBSCRIBTION TO /RIOT2/SENSORDATA TOPIC *****
 def on_connect(client, userdata, flags, rc):                                                                   
     if (debug > 1): print("on_connect:  Connected to MQTT Server.  Result code = "+str(rc))
 
     # Reconnect Subscribtion when a connection is made to the MQTT Server
-    client.subscribe("/RioT/SensorData")
-    client.subscribe("/RioT/NodeAlert")
+    client.subscribe("/RioT/Status")
 
-    if (debug > 1): print("\n<- on_connect:  Done subscribing to /RioT/SensorData, /RioT/NodeAlert Topics")
+    if (debug > 1): print("\n<- on_connect:  Done subscribing to /RioT/Status Topics")
     
 # ***** CALLBACK FUNCTION TO PROCESS MQTT DATA RECEIVED ON SUBSCRIBED TOPICS *****
 def on_message(client, userdata, msg):
@@ -298,8 +386,10 @@ def on_message(client, userdata, msg):
     if(debug >= 1): print("on_message:  Message Topic :",msg.topic, ", Message Length: ", len(mqtt_Data), "\n  Payload ->", mqtt_Data, "<-\n") 
 
     # Call appropriate Processor determined by message Topic
-    if(msg.topic == "/RioT/SensorData" and len(mqtt_Data) >=72 ):  process_SensorData(mqtt_Data)
-    elif(msg.topic == "/RioT/NodeAlert"): send_NodeAlert(mqtt_Data)
+    messageType = mqtt_Data[46:49]
+    if(debug >= 1): print("on_message: Subscribed Message Type:",)
+    if(msg.topic == "/RioT/Status" and len(mqtt_Data) >=94 and messageType == "SD:"):  process_SensorData(mqtt_Data)
+    elif(msg.topic == "/RioT/Status" and len(mqtt_Data) >=58 and messageType == "IS:"):  process_IrrigationStatus(mqtt_Data)
     else: 
         if(debug > 1): print ("Message Not Processed - Unrecognized")
 
@@ -335,7 +425,7 @@ if(debug > 1): print("  -> Done")
 client = mqtt.Client()                  # Instantiate the MQTT client
 client.on_connect = on_connect          # Set the function executed once a connection is made to the MQTT server
 client.on_message = on_message          # Set the Callback function for a subscribed message
-client.username_pw_set("biot", "excaliber") # Set MQTT connection user ID and Password
+client.username_pw_set(MQTT_Id, MQTT_Password) # Set MQTT connection user ID and Password
 client.connect("127.0.0.1", 1883, 60)   # Connect to the MQTT server                                                                                                 
 
 # ***** Main Program Loop that runs continuously processing received messages or a <cntrl>c is hit
