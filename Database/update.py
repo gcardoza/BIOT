@@ -4,8 +4,13 @@
 # Author:	Geofrey Cardoza
 # Company:	Excaliber Inc. (c)
 # Baseline:	June 28th, 2016
+<<<<<<< HEAD
 # Revision:	February 1, 2017  v1.5
 # Change:   Added sending Irrigation Status to Home Assistant via MQTT queues 
+=======
+# Revision:	November 6th, 2016  v1.4
+# Change:   Normalized RioT2 data, Added RioT3 Irrigation Data Support, Externalized Security Data
+>>>>>>> 577f5300a52fc63167ab037ade8c66fd0786e935
 
 import os
 import serial
@@ -231,9 +236,14 @@ def process_SensorData(node_Data):
         if(nodeLocation == "1. Main Floor") : client.publish("/BioT/SensorData/main", data)
         elif(nodeLocation == "2. Upstairs") : client.publish("/BioT/SensorData/upstairs", data)
         elif(nodeLocation == "3. Basement") : client.publish("/BioT/SensorData/basement", data)
+<<<<<<< HEAD
         elif(nodeLocation == "4. Cellar")    : client.publish("/BioT/SensorData/cellar", data)
         elif(nodeLocation == "5. Attic")    : client.publish("/BioT/SensorData/attic", data)
         elif(nodeLocation == "6. Outside")  : client.publish("/BioT/SensorData/outside", data)
+=======
+        elif(nodeLocation == "4. Attic")    : client.publish("/BioT/SensorData/attic", data)
+        elif(nodeLocation == "5. Outside")  : client.publish("/BioT/SensorData/outside", data)
+>>>>>>> 577f5300a52fc63167ab037ade8c66fd0786e935
         else: print("     -> *** Unknown Location: ", nodeLocation)
 
     # ***** CHECK FOR AND PROCESS ALERT CONDITIONS *****
@@ -316,6 +326,7 @@ def process_IrrigationStatus(node_Data):
         print("    Zone On-Time     = ", zoneOnTime, "                      ", zoneOnTime)
         print("    Zone Status      =     ", zoneStatus, "                        ", zoneStatus)
 
+<<<<<<< HEAD
     if(debug > 1):
     # ***** SEND ZONE STATUS TO THE HOME ASSISTANT LISTENING MQTT TOPIC *****
         print("\n  -> Sending Zone Status to Home Assistant")
@@ -339,6 +350,8 @@ def process_IrrigationStatus(node_Data):
         elif(activeZone == "8") : client.publish("/BioT/IrrigationStatus/Z8", zoneStatus)
         print("    -> Zone", activeZone, " is ", zoneStatus, "\n")
         
+=======
+>>>>>>> 577f5300a52fc63167ab037ade8c66fd0786e935
     # ***** UPDATE NODE TABLE WITH RIOT3 DATA *****
     try:
         if (debug > 1): print("  -> Checking if data exists in Table for Node: ", nodeId)
